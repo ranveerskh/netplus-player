@@ -18,7 +18,67 @@ function renderChannels() { const filtered = filteredChannels(); elements.channe
 
 async function loadCatalog() { elements.setup.hidden = true; elements.modebar.hidden = false; setMode("live"); setStatus("Connecting"); showNotice(""); elements.channels.innerHTML = '<p class="list-note">Loading portal catalogue…</p>'; try { state.catalog = await request("/api/catalog"); setStatus("Portal connected", true); renderCategories(); renderChannels(); } catch (error) { setStatus("Connection failed"); showNotice(error.message); } }
 function resetPlayer() { state.hls?.destroy(); state.hls = null; elements.video.removeAttribute("src"); elements.video.load(); }
-function attachHls(stream, retry) { const hls = new window.Hls({ enableWorker: false, lowLatencyMode: false, backBufferLength: 60, maxBufferLength: 30, manifestLoadingTimeOut: 30000, levelLoadingTimeOut: 30000, fragLoadingTimeOut: 30000 }); state.hls = hls; hls.loadSource(stream); hls.attachMedia(elements.video); hls.on(window.Hls.Events.MANIFEST_PARSED, () => { elements.videoLoading.hidden = true; elements.video.play().catch(() => undefined); }); hls.on(window.Hls.Events.ERROR, (_event, data) => { if (!data.fatal) return; if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR && retry.network++ < 2) { hls.startLoad(); return; } if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR && retry.media++ < 2) { hls.recoverMediaError(); return; } if (retry.reload++ < 1 && state.selected) { hls.destroy(); state.hls = null; setTimeout(() => playSelected(), 700); return; } elements.videoLoading.hidden = true; showNotice(`Playback issue: ${data.details}. The player retried automatically; please select the channel once more if it still does not start.`); }); }
+
+function attachHls(stream, retry) { 
+  const hls = new window.Hls({ 
+    enableWorker: false, 
+    lowLatencyMode: false, 
+    backBufferLength: 60, 
+    maxBufferLength: 30, 
+    manifestLoadingTimeOut: 30000, 
+    levelLoadingTimeOut: 30000, 
+    fragLoadingTimeOut: 30000 
+  }); 
+  
+  state.hls = hls; 
+  hls.loadSource(stream); 
+  hls.attachMedia(elements.video); 
+  
+  hls.on(window.Hls.Events.MANIFEST_PARSED, () => { 
+    elements.videoLoading.hidden = true; 
+    elements.video.play().catch(() => undefined); 
+  }); 
+  
+  hls.on(window.Hls.Events.ERROR, (_event, data) => { 
+    if (!data.fatal) return; 
+
+    if (data.details === window.Hls.ErrorDetails.LEVEL_PARSING_ERROR) {
+      hls.destroy();
+      elements.videoLoading.hidden = true;
+      showNotice("Stream error: The playlist is blocked or invalid. Try another channel.");
+      return;
+    }
+
+    if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR && retry.network++ < 3) { 
+      hls.startLoad(); 
+      return; 
+    } 
+    
+    if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR) { 
+      if (retry.media === 0) {
+        retry.media++;
+        hls.recoverMediaError(); 
+        return; 
+      } else if (retry.media === 1) {
+        retry.media++;
+        hls.swapAudioCodec(); 
+        hls.recoverMediaError();
+        return;
+      }
+    } 
+    
+    if (retry.reload++ < 2 && state.selected) { 
+      hls.destroy(); 
+      state.hls = null; 
+      setTimeout(() => playSelected(), 1000); 
+      return; 
+    } 
+    
+    elements.videoLoading.hidden = true; 
+    showNotice(`Playback stopped: ${data.details}. Select the channel again or try another channel.`); 
+  }); 
+}
+
 async function playSelected() { const selected = state.selected; if (!selected) return; resetPlayer(); try { const endpoint = selected.kind === "vod" ? "/api/vod/play" : "/api/play"; const body = selected.kind === "vod" ? { categoryId: selected.categoryId, itemId: selected.id } : { channelId: selected.id }; const payload = await request(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); if (window.Hls?.isSupported()) attachHls(payload.stream, { network: 0, media: 0, reload: 0 }); else if (elements.video.canPlayType("application/vnd.apple.mpegurl")) { elements.video.src = payload.stream; await elements.video.play(); elements.videoLoading.hidden = true; } else throw new Error("This browser does not support HLS playback."); } catch (error) { elements.videoLoading.hidden = true; showNotice(error.message); } }
 function beginPlayback(item) { state.selected = item; elements.nowPlaying.textContent = item.title || item.name; elements.placeholder.hidden = true; elements.videoLoading.hidden = false; showNotice(""); renderChannels(); playSelected(); }
 async function playLive(channel) { const category = state.catalog.categories.find((entry) => entry.id === channel.genreId); if (category?.locked && !(await unlockParental())) return; beginPlayback({ ...channel, kind: "live", title: channel.name }); }
