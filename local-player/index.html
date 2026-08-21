@@ -1,30 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <!--
-  NetPlus IPTV Player
-  FRONTEND VERSION: 1.1.0
-  File: index.html
-
-  v1.1.0
-  - Restored original NetPlus layout structure
-  - Added Live TV / Movies & Series navigation
-  - Added Netflix-style VOD workspace
-  - Added custom video player controls
-  - Added Favorites + channel/group visibility controls
-  - Added Settings modal
-  - Added Parental PIN controls
-  - Added VOD Resume UI
-  - Added EPG / Now Playing placeholder
-  - Compatible with existing server.js API
+=========================================================
+ NetPlus IPTV Player
+ VERSION: 1.2.0
+ File: index.html
+=========================================================
 -->
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0"
+    content="width=device-width,initial-scale=1"
   >
 
+  <meta
+    name="app-version"
+    content="1.2.0"
+  >
+
+  <!-- Avoid old HTML being reused -->
   <meta
     http-equiv="Cache-Control"
     content="no-store, no-cache, must-revalidate"
@@ -38,43 +34,46 @@
     content="0"
   >
 
-  <meta
-    name="app-version"
-    content="1.1.0"
-  >
-
   <title>NetPlus IPTV Player</title>
 
   <link
     rel="stylesheet"
-    href="styles.css?v=1.1.0"
+    href="styles.css?v=1.2.0"
   >
 
-  <script src="hls.min.js?v=1.1.0"></script>
+  <script
+    src="hls.min.js"
+  ></script>
 </head>
+
 
 <body class="theme-dark">
 
-  <!-- =========================================================
-       TOP HEADER
-  ========================================================== -->
+  <!-- ==================================================
+       TOP BAR
+  =================================================== -->
 
-  <header class="topbar" id="topbar" hidden>
+  <header
+    id="topbar"
+    class="topbar"
+    hidden
+  >
 
     <div class="brand">
 
-      <span class="brand-mark">
+      <div class="brand-mark">
         N+
-      </span>
+      </div>
 
-      <span>
+      <div class="brand-copy">
         <strong>NetPlus</strong>
         <small>IPTV Player</small>
-      </span>
+      </div>
 
     </div>
 
-    <div class="topbar-actions">
+
+    <div class="topbar-right">
 
       <div
         id="status"
@@ -88,7 +87,6 @@
         id="settingsButton"
         class="settings-button"
         type="button"
-        title="Settings"
       >
         ⚙ Settings
       </button>
@@ -98,9 +96,9 @@
   </header>
 
 
-  <!-- =========================================================
-       MODE NAVIGATION
-  ========================================================== -->
+  <!-- ==================================================
+       MODE BAR
+  =================================================== -->
 
   <nav
     id="modebar"
@@ -108,34 +106,30 @@
     hidden
   >
 
-    <div class="nav-left">
+    <button
+      class="mode-button active"
+      data-mode="live"
+      type="button"
+    >
+      📺 Live TV
+    </button>
 
-      <button
-        class="mode-button active"
-        type="button"
-        data-mode="live"
-      >
-        📺 Live TV
-      </button>
-
-      <button
-        class="mode-button"
-        type="button"
-        data-mode="vod"
-      >
-        🎬 Movies &amp; Series
-      </button>
-
-    </div>
+    <button
+      class="mode-button"
+      data-mode="vod"
+      type="button"
+    >
+      🎬 Movies &amp; Series
+    </button>
 
   </nav>
 
 
-  <!-- =========================================================
+  <!-- ==================================================
        INITIAL SETUP
-  ========================================================== -->
+  =================================================== -->
 
-  <div
+  <main
     id="setup"
     class="setup"
   >
@@ -143,23 +137,25 @@
     <form
       id="setupForm"
       class="setup-card"
+      autocomplete="off"
     >
 
       <div class="setup-logo">
         N+
       </div>
 
+
       <p class="eyebrow">
         NetPlus IPTV Player
       </p>
 
       <h1>
-        Welcome to NetPlus
+        Connect your service
       </h1>
 
       <p class="setup-copy">
-        Choose your NetPlus service and enter your MAC address
-        to connect this player.
+        Select your NetPlus service, enter your MAC
+        address and create a 4-digit parental PIN.
       </p>
 
 
@@ -181,7 +177,7 @@
         required
       >
         <option value="">
-          Choose your service
+          Select service
         </option>
 
         <option value="edge">
@@ -201,13 +197,21 @@
       </label>
 
       <input
-        type="text"
         id="mac"
-        placeholder="00:1A:79:12:34:56"
+        type="text"
+        inputmode="text"
         autocomplete="off"
+        autocapitalize="characters"
         spellcheck="false"
+        maxlength="17"
+        placeholder="00:1A:79:00:00:00"
+        value="00:1A:79:"
         required
       >
+
+      <small class="field-help">
+        Example: 00:1A:79:12:34:56
+      </small>
 
 
       <!-- PARENTAL PIN -->
@@ -217,32 +221,42 @@
       </label>
 
       <input
-        type="password"
         id="parentalPin"
-        placeholder="4-digit PIN"
+        type="password"
         inputmode="numeric"
+        autocomplete="new-password"
         pattern="[0-9]{4}"
         maxlength="4"
-        autocomplete="off"
+        placeholder="4-digit PIN"
         required
       >
 
+      <small class="field-help">
+        This PIN is used to unlock protected content.
+      </small>
+
 
       <button
-        type="submit"
         id="connectButton"
+        type="submit"
+        class="primary-button"
       >
         Save &amp; Connect
       </button>
 
+
+      <p class="setup-version">
+        NetPlus v1.2.0
+      </p>
+
     </form>
 
-  </div>
+  </main>
 
 
-  <!-- =========================================================
+  <!-- ==================================================
        LIVE TV WORKSPACE
-  ========================================================== -->
+  =================================================== -->
 
   <main
     id="workspace"
@@ -250,30 +264,33 @@
     hidden
   >
 
+    <!-- CATEGORIES -->
 
-    <!-- =======================================================
-         GROUPS / CATEGORIES
-    ======================================================== -->
-
-    <section class="panel categories-panel">
+    <section
+      class="panel categories-panel"
+    >
 
       <div class="heading">
 
-        <p>
-          Live TV
-        </p>
+        <div>
+          <p>Live TV</p>
 
-        <div class="heading-row">
-
-          <strong id="groupCount">
-            0 groups
+          <strong>
+            Categories
           </strong>
+        </div>
+
+
+        <div class="heading-actions">
+
+          <span id="groupCount">
+            0 groups
+          </span>
 
           <button
             id="editGroupsButton"
-            class="edit-button"
+            class="small-action-button"
             type="button"
-            title="Edit group visibility"
           >
             👁 Edit
           </button>
@@ -291,41 +308,38 @@
     </section>
 
 
-    <!-- =======================================================
-         CHANNELS
-    ======================================================== -->
+    <!-- CHANNELS -->
 
-    <section class="panel channels-panel">
+    <section
+      class="panel channels-panel"
+    >
 
-      <div class="heading channels-heading">
+      <div
+        class="heading channels-heading"
+      >
 
         <div>
-
-          <p>
-            Channels
-          </p>
+          <p>Channels</p>
 
           <strong id="channelCount">
             0 channels
           </strong>
-
         </div>
 
 
-        <div class="channel-heading-actions">
+        <div class="channel-heading-tools">
 
           <input
-            type="search"
             id="search"
-            placeholder="Search..."
+            type="search"
+            placeholder="Search channels..."
             autocomplete="off"
           >
 
           <button
             id="editChannelsButton"
-            class="edit-button"
+            class="small-action-button"
             type="button"
-            title="Edit channel visibility"
           >
             👁 Edit
           </button>
@@ -343,25 +357,16 @@
     </section>
 
 
-    <!-- =======================================================
-         PLAYER
-    ======================================================== -->
+    <!-- LIVE PLAYER -->
 
-    <section
-      class="player-column"
-      id="playerContainer"
-    >
+    <section class="player-column">
 
+      <article
+        id="playerContainer"
+        class="player-card player-container"
+      >
 
-      <div class="player-card">
-
-
-        <!-- VIDEO -->
-
-        <div
-          class="video-stage video-wrapper"
-          id="videoWrapper"
-        >
+        <div class="video-stage">
 
           <video
             id="video"
@@ -369,23 +374,22 @@
           ></video>
 
 
-          <!-- DEFAULT PLACEHOLDER -->
+          <!-- INITIAL PLACEHOLDER -->
 
           <div
             id="placeholder"
             class="placeholder"
           >
 
-            <span>
-              ▶
-            </span>
+            <span>▶</span>
 
             <strong>
               Select a channel
             </strong>
 
             <p>
-              Choose a channel from the list to start watching.
+              Choose a channel from the list to begin
+              watching Live TV.
             </p>
 
           </div>
@@ -408,27 +412,13 @@
           </div>
 
 
-          <!-- VIDEO ERROR / NOTICE -->
-
-          <div
-            id="notice"
-            class="video-notice"
-            hidden
-          ></div>
-
-
-          <!-- =================================================
-               CUSTOM VIDEO CONTROLS
-          ================================================== -->
+          <!-- CUSTOM PLAYER CONTROLS -->
 
           <div
             id="customControls"
             class="custom-controls"
             hidden
           >
-
-
-            <!-- TOP -->
 
             <div class="controls-top">
 
@@ -443,30 +433,20 @@
             </div>
 
 
-            <!-- BOTTOM -->
-
             <div class="controls-bottom">
-
-
-              <!-- VOD PROGRESS -->
 
               <div
                 id="progressContainer"
                 class="progress-container"
               >
-
                 <div
                   id="progressBar"
                   class="progress-bar"
                 ></div>
-
               </div>
 
 
               <div class="controls-buttons">
-
-
-                <!-- LEFT -->
 
                 <div class="controls-left">
 
@@ -474,7 +454,7 @@
                     id="playPauseBtn"
                     class="control-btn"
                     type="button"
-                    title="Play / Pause"
+                    aria-label="Play or pause"
                   >
                     ⏸
                   </button>
@@ -486,14 +466,14 @@
                       id="muteBtn"
                       class="control-btn"
                       type="button"
-                      title="Mute"
+                      aria-label="Mute"
                     >
                       🔊
                     </button>
 
                     <input
-                      type="range"
                       id="volumeSlider"
+                      type="range"
                       min="0"
                       max="1"
                       step="0.05"
@@ -514,12 +494,243 @@
                 </div>
 
 
-                <!-- RIGHT -->
-
                 <div class="controls-right">
 
                   <button
                     id="fullscreenBtn"
+                    class="control-btn"
+                    type="button"
+                    aria-label="Fullscreen"
+                  >
+                    ⛶
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- NOW PLAYING -->
+
+        <div class="now-playing">
+
+          <div>
+
+            <p id="playerModeBadge">
+              LIVE
+            </p>
+
+            <h1 id="nowPlaying">
+              Nothing playing
+            </h1>
+
+          </div>
+
+        </div>
+
+      </article>
+
+
+      <!-- PLAYBACK NOTICE -->
+
+      <div
+        id="notice"
+        class="notice"
+        hidden
+      ></div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ==================================================
+       VOD WORKSPACE
+       LEFT 20% / RIGHT 80%
+  =================================================== -->
+
+  <main
+    id="vodWorkspace"
+    class="vod-workspace"
+    hidden
+  >
+
+    <!-- VOD LEFT SIDEBAR -->
+
+    <aside class="vod-sidebar">
+
+      <div class="vod-sidebar-header">
+
+        <p>On Demand</p>
+
+        <h2>
+          Movies &amp; Series
+        </h2>
+
+      </div>
+
+
+      <div class="vod-search-box">
+
+        <input
+          id="vodSearch"
+          type="search"
+          placeholder="Search movies..."
+          autocomplete="off"
+        >
+
+      </div>
+
+
+      <div
+        id="vodCategories"
+        class="vod-category-list"
+      >
+
+        <p class="list-note">
+          Loading categories...
+        </p>
+
+      </div>
+
+    </aside>
+
+
+    <!-- VOD RIGHT CONTENT -->
+
+    <section class="vod-main">
+
+      <!--
+        Movie playback stays INSIDE VOD page.
+      -->
+
+      <section
+        id="vodPlayerSection"
+        class="vod-player-section"
+        hidden
+      >
+
+        <div
+          id="vodPlayerContainer"
+          class="vod-player-container"
+        >
+
+          <video
+            id="vodVideo"
+            playsinline
+          ></video>
+
+
+          <div
+            id="vodVideoLoading"
+            class="loading"
+            hidden
+          >
+            <b></b>
+
+            <p>
+              Loading movie...
+            </p>
+          </div>
+
+
+          <div
+            id="vodPlayerControls"
+            class="custom-controls"
+            hidden
+          >
+
+            <div class="controls-top">
+
+              <h2 id="vodControlTitle">
+                Movie
+              </h2>
+
+              <span>
+                On Demand
+              </span>
+
+            </div>
+
+
+            <div class="controls-bottom">
+
+              <div
+                id="vodProgressContainer"
+                class="progress-container"
+              >
+                <div
+                  id="vodProgressBar"
+                  class="progress-bar"
+                ></div>
+              </div>
+
+
+              <div class="controls-buttons">
+
+                <div class="controls-left">
+
+                  <button
+                    id="vodPlayPauseBtn"
+                    class="control-btn"
+                    type="button"
+                  >
+                    ⏸
+                  </button>
+
+
+                  <div class="volume-container">
+
+                    <button
+                      id="vodMuteBtn"
+                      class="control-btn"
+                      type="button"
+                    >
+                      🔊
+                    </button>
+
+                    <input
+                      id="vodVolumeSlider"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value="1"
+                    >
+
+                  </div>
+
+
+                  <span
+                    id="vodTimeDisplay"
+                    class="time-display"
+                  >
+                    0:00 / 0:00
+                  </span>
+
+                </div>
+
+
+                <div class="controls-right">
+
+                  <button
+                    id="closeVodPlayerButton"
+                    class="control-btn vod-close-player"
+                    type="button"
+                    title="Close player"
+                  >
+                    ✕
+                  </button>
+
+
+                  <button
+                    id="vodFullscreenBtn"
                     class="control-btn"
                     type="button"
                     title="Fullscreen"
@@ -537,176 +748,151 @@
 
         </div>
 
-
-        <!-- ===================================================
-             NOW PLAYING
-        ==================================================== -->
-
-        <div class="now-playing">
-
-          <div>
-
-            <p>
-              Now Playing
-            </p>
-
-            <h1 id="nowPlaying">
-              Nothing selected
-            </h1>
-
-          </div>
+      </section>
 
 
-          <span
-            id="playerModeBadge"
-            class="player-mode-badge"
-          >
-            LIVE
-          </span>
+      <!-- VOD PAGE HEADER -->
+
+      <header class="vod-main-header">
+
+        <div>
+
+          <p class="eyebrow">
+            Browse
+          </p>
+
+          <h1 id="vodCategoryTitle">
+            All Movies
+          </h1>
+
+          <p id="vodCategoryMeta">
+            Choose a category from the left.
+          </p>
 
         </div>
 
-      </div>
+      </header>
 
 
-      <!-- PLAYER INFORMATION -->
-
-      <div class="local-note">
-
-        <span>
-          LOCAL
-        </span>
-
-        <p>
-          NetPlus Player runs locally on this device.
-        </p>
-
-      </div>
-
-    </section>
-
-  </main>
-
-
-  <!-- =========================================================
-       VOD / MOVIES & SERIES
-  ========================================================== -->
-
-  <main
-    id="vodWorkspace"
-    class="vod-workspace"
-    hidden
-  >
-
-
-    <!-- VOD HERO -->
-
-    <section class="vod-hero">
-
-      <div>
-
-        <p class="eyebrow">
-          NetPlus On Demand
-        </p>
-
-        <h1>
-          Movies &amp; Series
-        </h1>
-
-        <p>
-          Browse your on-demand library and continue watching
-          where you left off.
-        </p>
-
-      </div>
-
-
-      <input
-        type="search"
-        id="vodSearch"
-        placeholder="Search movies & series..."
-        autocomplete="off"
-      >
-
-    </section>
-
-
-    <!-- NETFLIX STYLE ROWS -->
-
-    <div
-      id="vodRows"
-      class="vod-rows"
-    ></div>
-
-  </main>
-
-
-  <!-- =========================================================
-       VOD DETAILS MODAL
-  ========================================================== -->
-
-  <div
-    id="vodModal"
-    class="details-modal"
-    hidden
-  >
-
-    <div class="details-card">
-
-
-      <button
-        id="vodClose"
-        class="modal-close"
-        type="button"
-        aria-label="Close"
-      >
-        ×
-      </button>
-
+      <!-- MOVIE GRID -->
 
       <div
-        id="vodModalPoster"
-        class="movie-poster large"
+        id="vodGrid"
+        class="vod-grid"
       ></div>
 
 
-      <div class="movie-details">
+      <!--
+        Infinite scroll sentinel.
+        app.js will observe this element and
+        request the next portal page.
+      -->
 
-        <p class="eyebrow">
-          On Demand
-        </p>
+      <div
+        id="vodLoadMore"
+        class="vod-load-more"
+      >
 
-        <h1 id="vodModalTitle">
-          Movie
-        </h1>
+        <div
+          id="vodLoadSpinner"
+          class="vod-load-spinner"
+          hidden
+        >
+          <b></b>
+
+          <span>
+            Loading more...
+          </span>
+        </div>
+
 
         <p
-          id="vodModalMeta"
-          class="movie-meta"
-        ></p>
-
-        <p id="vodModalDescription">
-          No description available.
+          id="vodEndMessage"
+          class="list-note"
+          hidden
+        >
+          You reached the end of this category.
         </p>
 
+      </div>
 
-        <div class="vod-actions">
+    </section>
 
-          <button
-            id="vodPlayButton"
-            type="button"
-          >
-            ▶ Play
-          </button>
+  </main>
 
-          <button
-            id="vodResumeButton"
-            class="resume-btn"
-            type="button"
-            hidden
-          >
-            ↺ Resume
-          </button>
+
+  <!-- ==================================================
+       VOD DETAILS MODAL
+  =================================================== -->
+
+  <div
+    id="vodModal"
+    class="modal-overlay"
+    hidden
+  >
+
+    <div class="modal-content vod-modal-box">
+
+      <button
+        id="vodClose"
+        class="close-btn"
+        type="button"
+        aria-label="Close"
+      >
+        ✕
+      </button>
+
+
+      <div class="modal-split">
+
+        <div
+          id="vodModalPoster"
+          class="modal-poster"
+        ></div>
+
+
+        <div class="modal-details">
+
+          <p class="eyebrow">
+            NetPlus On Demand
+          </p>
+
+          <h2 id="vodModalTitle">
+            Movie
+          </h2>
+
+          <p
+            id="vodModalMeta"
+            class="meta-text"
+          ></p>
+
+          <p
+            id="vodModalDescription"
+            class="desc-text"
+          ></p>
+
+
+          <div class="vod-actions">
+
+            <button
+              id="vodPlayButton"
+              class="play-btn"
+              type="button"
+            >
+              ▶ Play
+            </button>
+
+
+            <button
+              id="vodResumeButton"
+              class="play-btn resume-btn"
+              type="button"
+              hidden
+            >
+              ↺ Resume
+            </button>
+
+          </div>
 
         </div>
 
@@ -717,26 +903,103 @@
   </div>
 
 
-  <!-- =========================================================
-       SETTINGS MODAL
-  ========================================================== -->
+  <!-- ==================================================
+       PARENTAL PIN UNLOCK MODAL
+  =================================================== -->
 
   <div
-    id="settingsModal"
-    class="settings-modal"
+    id="pinModal"
+    class="modal-overlay"
     hidden
   >
 
-    <div class="settings-card">
+    <div class="modal-content pin-modal-box">
 
+      <button
+        id="closePinModal"
+        class="close-btn"
+        type="button"
+      >
+        ✕
+      </button>
+
+
+      <div class="pin-lock-icon">
+        🔒
+      </div>
+
+
+      <p class="eyebrow">
+        Parental Controls
+      </p>
+
+      <h2>
+        Protected content
+      </h2>
+
+      <p class="pin-description">
+        Enter your parental PIN to continue.
+      </p>
+
+
+      <form
+        id="pinUnlockForm"
+        autocomplete="off"
+      >
+
+        <input
+          id="unlockPin"
+          class="pin-input"
+          type="password"
+          inputmode="numeric"
+          maxlength="4"
+          pattern="[0-9]{4}"
+          placeholder="••••"
+          autocomplete="off"
+          required
+        >
+
+
+        <div
+          id="unlockPinError"
+          class="form-error pin-error"
+          hidden
+        ></div>
+
+
+        <button
+          id="unlockPinButton"
+          class="primary-button"
+          type="submit"
+        >
+          Unlock
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       SETTINGS MODAL
+  =================================================== -->
+
+  <div
+    id="settingsModal"
+    class="modal-overlay"
+    hidden
+  >
+
+    <div class="modal-content settings-box">
 
       <button
         id="closeSettingsButton"
-        class="modal-close"
+        class="close-btn"
         type="button"
-        aria-label="Close settings"
       >
-        ×
+        ✕
       </button>
 
 
@@ -745,7 +1008,7 @@
       </p>
 
       <h2>
-        Settings
+        App Settings
       </h2>
 
 
@@ -776,7 +1039,7 @@
       </section>
 
 
-      <!-- PARENTAL CONTROLS -->
+      <!-- PARENTAL -->
 
       <section class="settings-section">
 
@@ -784,20 +1047,20 @@
           Parental Controls
         </h3>
 
-        <p>
-          Set a new 4-digit parental PIN.
-        </p>
+        <label for="newParentalPin">
+          Change Parental PIN
+        </label>
 
 
-        <div class="settings-input-row">
+        <div class="input-row">
 
           <input
-            type="password"
             id="newParentalPin"
-            placeholder="New 4-digit PIN"
+            type="password"
             inputmode="numeric"
             maxlength="4"
-            autocomplete="off"
+            pattern="[0-9]{4}"
+            placeholder="New 4-digit PIN"
           >
 
           <button
@@ -819,44 +1082,49 @@
       </section>
 
 
-      <!-- PORTAL RESET -->
+      <!-- PORTAL -->
 
-      <section class="settings-section warning-section">
+      <section
+        class="settings-section warning-section"
+      >
 
         <h3>
           Portal Configuration
         </h3>
 
         <p>
-          Reset the saved player configuration and return
-          to the setup screen.
+          Change your service or MAC address by
+          returning to the setup screen.
         </p>
+
 
         <button
           id="resetPortalButton"
-          class="danger-button"
+          class="danger-btn"
           type="button"
         >
-          Reset Portal &amp; Log Out
+          Reconfigure Portal
         </button>
 
       </section>
 
 
-      <div class="version-label">
-        NetPlus Player · Frontend v1.1.0
-      </div>
+      <p class="settings-version">
+        NetPlus IPTV Player v1.2.0
+      </p>
 
     </div>
 
   </div>
 
 
-  <!-- =========================================================
-       APPLICATION
-  ========================================================== -->
+  <!-- ==================================================
+       APP
+  =================================================== -->
 
-  <script src="app.js?v=1.1.0"></script>
+  <script
+    src="app.js?v=1.2.0"
+  ></script>
 
 </body>
 </html>
