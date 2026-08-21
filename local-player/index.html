@@ -54,7 +54,6 @@
         <aside class="sidebar">
             <div class="list-header">
                 <span id="groupCount"></span>
-                <!-- Button to toggle group visibility editing -->
                 <button id="editGroupsButton" class="icon-btn" title="Edit Group Visibility">👁️ Edit</button>
             </div>
             <div id="categories" class="scrollable-list"></div>
@@ -66,15 +65,14 @@
                 <input type="text" id="search" placeholder="Search channels...">
                 <div class="header-actions">
                     <span id="channelCount"></span>
-                    <!-- Button to toggle channel visibility editing -->
                     <button id="editChannelsButton" class="icon-btn" title="Edit Channel Visibility">👁️ Edit</button>
                 </div>
             </div>
             <div id="channels" class="scrollable-list"></div>
         </section>
 
-        <!-- Right Column: Video Player -->
-        <section class="player-container">
+        <!-- Right Column: Video Player with Custom Controls -->
+        <section class="player-container" id="playerContainer">
             <div id="status" class="status-badge"><span></span></div>
             <div class="video-wrapper">
                 <div id="placeholder" class="video-overlay">Select a channel to start playing</div>
@@ -82,9 +80,40 @@
                     <span class="spinner"></span> Loading stream...
                 </div>
                 <div id="notice" class="video-overlay error-overlay" hidden></div>
-                <video id="video" controls autoplay></video>
+                
+                <!-- Notice the 'controls' attribute is GONE -->
+                <video id="video"></video>
+                
+                <!-- NEW: Custom Video Controls Overlay -->
+                <div id="customControls" class="custom-controls" hidden>
+                    <div class="controls-top">
+                        <h2 id="controlTitle">Channel Name</h2>
+                        <span id="controlEpg">Now Playing: ...</span>
+                    </div>
+                    
+                    <div class="controls-bottom">
+                        <!-- Progress Bar (mostly for VOD) -->
+                        <div class="progress-container" id="progressContainer">
+                            <div class="progress-bar" id="progressBar"></div>
+                        </div>
+                        
+                        <div class="controls-buttons">
+                            <div class="controls-left">
+                                <button id="playPauseBtn" class="control-btn">⏸️</button>
+                                <div class="volume-container">
+                                    <button id="muteBtn" class="control-btn">🔊</button>
+                                    <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1">
+                                </div>
+                                <span id="timeDisplay" class="time-display">LIVE</span>
+                            </div>
+                            
+                            <div class="controls-right">
+                                <button id="fullscreenBtn" class="control-btn">🔲</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="nowPlaying" class="now-playing-bar"></div>
         </section>
     </div>
 
@@ -96,7 +125,7 @@
         <div id="vodRows" class="vod-content"></div>
     </div>
 
-    <!-- VOD Info Modal -->
+    <!-- VOD Info Modal with Resume Options -->
     <div id="vodModal" class="modal-overlay" hidden>
         <div class="modal-content vod-modal-box">
             <button id="vodClose" class="close-btn">✖</button>
@@ -106,13 +135,18 @@
                     <h2 id="vodModalTitle"></h2>
                     <p id="vodModalMeta" class="meta-text"></p>
                     <p id="vodModalDescription" class="desc-text"></p>
-                    <button id="vodPlayButton" class="play-btn">▶ Play Now</button>
+                    
+                    <!-- Updated Buttons for Resume Feature -->
+                    <div class="vod-actions">
+                        <button id="vodPlayButton" class="play-btn">▶ Play</button>
+                        <button id="vodResumeButton" class="play-btn resume-btn" hidden>↺ Resume</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- NEW: Advanced Settings Modal -->
+    <!-- Advanced Settings Modal -->
     <div id="settingsModal" class="modal-overlay" hidden>
         <div class="modal-content settings-box">
             <button id="closeSettingsButton" class="close-btn">✖</button>
