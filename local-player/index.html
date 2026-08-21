@@ -1,98 +1,151 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Netplus IPTV Player</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark">N</span>
-        <span><strong>Netplus IPTV Player</strong><small>Live TV for your home</small></span>
-      </div>
-      <div class="status" id="status"><i></i><span>Starting</span></div>
-    </header>
-
-    <nav class="modebar" id="modebar" hidden>
-      <button class="mode-button active" type="button" data-mode="live">Live TV</button>
-      <button class="mode-button" type="button" data-mode="vod">Movies & VOD</button>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetPlus IPTV Player</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Load HLS.js for the player -->
+    <script src="hls.min.js"></script>
+</head>
+<body class="theme-dark">
+    
+    <!-- Top Navigation Bar -->
+    <nav id="modebar" hidden>
+        <div class="nav-left">
+            <button class="mode-button active" data-mode="live">📺 Live TV</button>
+            <button class="mode-button" data-mode="vod">🎬 Movies & Series</button>
+        </div>
+        <div class="nav-right">
+            <button id="settingsButton">⚙️ Settings</button>
+        </div>
     </nav>
 
-    <main class="workspace" id="workspace" hidden>
-      <aside class="panel categories-panel">
-        <div class="heading"><p>Browse</p><strong id="groupCount">0 groups</strong></div>
-        <nav id="categories" class="scroll-list"></nav>
-      </aside>
-
-      <section class="panel channels-panel">
-        <div class="heading channels-heading">
-          <div><p>Live TV</p><strong id="channelCount">0 channels</strong></div>
-          <input id="search" type="search" placeholder="Search" aria-label="Search channels" />
-        </div>
-        <div id="channels" class="scroll-list channel-list"></div>
-      </section>
-
-      <section class="player-column">
-        <div class="player-card">
-          <div class="video-stage">
-            <video id="video" controls playsinline></video>
-            <div class="placeholder" id="placeholder">
-              <span>▶</span><strong>Select a channel to test</strong>
-              <p>Video traffic stays on this laptop and uses your internet connection.</p>
+    <!-- Initial Setup / Portal Config -->
+    <div id="setup">
+        <form id="setupForm" class="glass-panel">
+            <h2>Welcome to NetPlus</h2>
+            <p>Please enter your portal details to connect.</p>
+            <div id="setupError" class="error-msg" hidden></div>
+            
+            <div class="input-group">
+                <label for="serviceId">Service ID / Portal URL</label>
+                <input type="text" id="serviceId" placeholder="http://portal.example.com" required>
             </div>
-            <div class="loading" id="videoLoading" hidden><b></b><p>Preparing live stream…</p></div>
-          </div>
-          <div class="now-playing">
-            <div><p>Now playing</p><h1 id="nowPlaying">Nothing selected</h1></div>
-            <button id="settingsButton" type="button">Portal settings</button>
-          </div>
+            
+            <div class="input-group">
+                <label for="mac">MAC Address</label>
+                <input type="text" id="mac" placeholder="00:1A:79:XX:XX:XX" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="parentalPin">Parental PIN</label>
+                <input type="password" id="parentalPin" placeholder="4-digit PIN" required>
+            </div>
+            
+            <button type="submit" id="connectButton">Save & Connect</button>
+        </form>
+    </div>
+
+    <!-- Live TV Workspace -->
+    <div id="workspace" hidden>
+        
+        <!-- Sidebar: Categories/Groups -->
+        <aside class="sidebar">
+            <div class="list-header">
+                <span id="groupCount"></span>
+                <!-- Button to toggle group visibility editing -->
+                <button id="editGroupsButton" class="icon-btn" title="Edit Group Visibility">👁️ Edit</button>
+            </div>
+            <div id="categories" class="scrollable-list"></div>
+        </aside>
+
+        <!-- Main Column: Channels -->
+        <section class="channel-list">
+            <div class="list-header channel-header">
+                <input type="text" id="search" placeholder="Search channels...">
+                <div class="header-actions">
+                    <span id="channelCount"></span>
+                    <!-- Button to toggle channel visibility editing -->
+                    <button id="editChannelsButton" class="icon-btn" title="Edit Channel Visibility">👁️ Edit</button>
+                </div>
+            </div>
+            <div id="channels" class="scrollable-list"></div>
+        </section>
+
+        <!-- Right Column: Video Player -->
+        <section class="player-container">
+            <div id="status" class="status-badge"><span></span></div>
+            <div class="video-wrapper">
+                <div id="placeholder" class="video-overlay">Select a channel to start playing</div>
+                <div id="videoLoading" class="video-overlay" hidden>
+                    <span class="spinner"></span> Loading stream...
+                </div>
+                <div id="notice" class="video-overlay error-overlay" hidden></div>
+                <video id="video" controls autoplay></video>
+            </div>
+            <div id="nowPlaying" class="now-playing-bar"></div>
+        </section>
+    </div>
+
+    <!-- VOD Workspace (Netflix Style) -->
+    <div id="vodWorkspace" hidden>
+        <div class="vod-header">
+            <input type="text" id="vodSearch" placeholder="Search for movies, series, or genres...">
         </div>
-        <div id="notice" class="notice" hidden></div>
-        <div class="local-note">
-          <span>LOCAL</span>
-          <p>Keep the black command window open while watching. Closing it stops the player.</p>
+        <div id="vodRows" class="vod-content"></div>
+    </div>
+
+    <!-- VOD Info Modal -->
+    <div id="vodModal" class="modal-overlay" hidden>
+        <div class="modal-content vod-modal-box">
+            <button id="vodClose" class="close-btn">✖</button>
+            <div class="modal-split">
+                <div id="vodModalPoster" class="modal-poster"></div>
+                <div class="modal-details">
+                    <h2 id="vodModalTitle"></h2>
+                    <p id="vodModalMeta" class="meta-text"></p>
+                    <p id="vodModalDescription" class="desc-text"></p>
+                    <button id="vodPlayButton" class="play-btn">▶ Play Now</button>
+                </div>
+            </div>
         </div>
-      </section>
-    </main>
+    </div>
 
-    <main class="vod-workspace" id="vodWorkspace" hidden>
-      <section class="vod-hero">
-        <div><p class="eyebrow">Movies & VOD</p><h1>Watch what you want</h1><p>Browse your service’s on-demand library.</p></div>
-        <input id="vodSearch" type="search" placeholder="Search movies" aria-label="Search movies" />
-      </section>
-      <section id="vodRows" class="vod-rows"></section>
-    </main>
+    <!-- NEW: Advanced Settings Modal -->
+    <div id="settingsModal" class="modal-overlay" hidden>
+        <div class="modal-content settings-box">
+            <button id="closeSettingsButton" class="close-btn">✖</button>
+            <h2>App Settings</h2>
+            
+            <div class="settings-section">
+                <h3>Appearance</h3>
+                <label for="themeSelect">App Theme</label>
+                <select id="themeSelect">
+                    <option value="dark">Dark Theme (Default)</option>
+                    <option value="light">Light Theme</option>
+                </select>
+            </div>
 
-    <section class="setup" id="setup" hidden>
-      <form id="setupForm" class="setup-card">
-          <span class="setup-logo">N</span>
-        <p class="eyebrow">First-time setup</p>
-        <h1>Connect your service</h1>
-        <p class="setup-copy">Select the service where your MAC address is activated.</p>
-        <label>Netplus service
-          <select id="serviceId" name="serviceId" required>
-            <option value="edge">Netplus Edge</option>
-            <option value="classic">Netplus Classic</option>
-          </select>
-        </label>
-        <label>Activated MAC address<input id="mac" name="mac" type="text" placeholder="00:1A:79:12:34:56" maxlength="17" required /></label>
-        <label>Set parental PIN<input id="parentalPin" name="parentalPin" type="password" inputmode="numeric" pattern="[0-9]{4}" placeholder="Choose 4 digits" maxlength="4" required /></label>
-        <button id="connectButton" type="submit">Save & connect</button>
-        <p class="form-error" id="setupError" hidden></p>
-      </form>
-    </section>
+            <div class="settings-section">
+                <h3>Parental Controls</h3>
+                <label for="newParentalPin">Change Parental PIN</label>
+                <div class="input-row">
+                    <input type="password" id="newParentalPin" placeholder="New 4-digit PIN" maxlength="4">
+                    <button id="updatePinButton">Update PIN</button>
+                </div>
+                <span id="pinNotice" class="settings-notice" hidden></span>
+            </div>
 
-    <section class="details-modal" id="vodModal" hidden>
-      <div class="details-card">
-        <button class="modal-close" id="vodClose" type="button" aria-label="Close">×</button>
-        <div class="movie-poster large" id="vodModalPoster">N</div>
-        <div class="movie-details"><p class="eyebrow">On demand</p><h1 id="vodModalTitle">Movie</h1><p class="movie-meta" id="vodModalMeta"></p><p id="vodModalDescription">Choose a movie to see details.</p><button id="vodPlayButton" type="button">▶ Play movie</button></div>
-      </div>
-    </section>
+            <div class="settings-section warning-section">
+                <h3>Portal Configuration</h3>
+                <p>Need to update your MAC address or Provider URL? Resetting your portal will log you out.</p>
+                <button id="resetPortalButton" class="danger-btn">Reset Portal & Log Out</button>
+            </div>
+        </div>
+    </div>
 
-    <script src="/hls.min.js"></script>
-    <script src="/app.js"></script>
-  </body>
+    <!-- Main Application Logic -->
+    <script src="app.js"></script>
+</body>
 </html>
