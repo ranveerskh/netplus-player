@@ -19,7 +19,7 @@ jobs:
         run: npm install
 
       - name: Build Netplus installer
-        run: npm run desktop:make
+        run: npm run desktop:make -- --publish never
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
