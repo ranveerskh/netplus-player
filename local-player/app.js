@@ -1,989 +1,696 @@
 /*
 =========================================================
  NetPlus IPTV Player
- FRONTEND VERSION: 1.1.0
+ VERSION: 1.2.0
  File: app.js
-
- - Original NetPlus frontend restored
- - Gemini features safely integrated
- - Favorites
- - Hidden groups/channels
- - Netflix-style VOD
- - Watch history / Resume
- - Custom player controls
- - Keyboard shortcuts
- - Parental controls
- - HLS recovery
- - Server.js remains unchanged
 =========================================================
 */
 
-"use strict";
-
-/* =====================================================
-   STATE
-===================================================== */
+const APP_VERSION = "1.2.0";
 
 const state = {
   catalog: null,
-
   category: "all",
   query: "",
-
   selected: null,
-
   hls: null,
-
-  mode: "live",
+  liveRetryToken: 0,
 
   parentalUnlocked: false,
+  pendingUnlockAction: null,
 
-  resumeTime: 0,
-
-  playbackGeneration: 0,
-
-  hiddenGroups: new Set(
-    JSON.parse(localStorage.getItem("hiddenGroups") || "[]")
-  ),
-
-  hiddenChannels: new Set(
-    JSON.parse(localStorage.getItem("hiddenChannels") || "[]")
-  ),
-
-  favoriteChannels: new Set(
-    JSON.parse(localStorage.getItem("favoriteChannels") || "[]")
-  ),
-
-  watchHistory: JSON.parse(
-    localStorage.getItem("watchHistory") || "{}"
-  ),
+  hiddenGroups: new Set(JSON.parse(localStorage.getItem("hiddenGroups") || "[]")),
+  hiddenChannels: new Set(JSON.parse(localStorage.getItem("hiddenChannels") || "[]")),
+  favoriteChannels: new Set(JSON.parse(localStorage.getItem("favoriteChannels") || "[]")),
+  watchHistory: JSON.parse(localStorage.getItem("watchHistory") || "{}"),
 
   editingGroups: false,
   editingChannels: false,
-
   theme: localStorage.getItem("theme") || "dark",
 
   vod: {
     categories: [],
-    items: new Map(),
+    categoryId: null,
     query: "",
+    items: [],
+    itemIds: new Set(),
     selected: null,
-    loaded: false
-  }
+    page: 0,
+    total: 0,
+    loading: false,
+    ended: false,
+    loadToken: 0,
+    hls: null,
+    retryToken: 0,
+  },
 };
 
-
-/* =====================================================
-   ELEMENTS
-===================================================== */
+const $ = (selector) => document.querySelector(selector);
 
 const elements = {
-  topbar: document.querySelector("#topbar"),
+  topbar: $("#topbar"),
+  modebar: $("#modebar"),
 
-  workspace: document.querySelector("#workspace"),
+  setup: $("#setup"),
+  setupForm: $("#setupForm"),
+  setupError: $("#setupError"),
+  connectButton: $("#connectButton"),
+  serviceId: $("#serviceId"),
+  mac: $("#mac"),
+  parentalPin: $("#parentalPin"),
 
-  setup: document.querySelector("#setup"),
+  status: $("#status"),
+  settingsButton: $("#settingsButton"),
 
-  setupForm: document.querySelector("#setupForm"),
+  workspace: $("#workspace"),
+  categories: $("#categories"),
+  channels: $("#channels"),
+  groupCount: $("#groupCount"),
+  channelCount: $("#channelCount"),
+  search: $("#search"),
+  editGroupsButton: $("#editGroupsButton"),
+  editChannelsButton: $("#editChannelsButton"),
 
-  setupError: document.querySelector("#setupError"),
+  playerContainer: $("#playerContainer"),
+  video: $("#video"),
+  placeholder: $("#placeholder"),
+  videoLoading: $("#videoLoading"),
+  customControls: $("#customControls"),
+  controlTitle: $("#controlTitle"),
+  controlEpg: $("#controlEpg"),
+  progressContainer: $("#progressContainer"),
+  progressBar: $("#progressBar"),
+  playPauseBtn: $("#playPauseBtn"),
+  muteBtn: $("#muteBtn"),
+  volumeSlider: $("#volumeSlider"),
+  timeDisplay: $("#timeDisplay"),
+  fullscreenBtn: $("#fullscreenBtn"),
+  playerModeBadge: $("#playerModeBadge"),
+  nowPlaying: $("#nowPlaying"),
+  notice: $("#notice"),
 
-  connectButton: document.querySelector("#connectButton"),
+  vodWorkspace: $("#vodWorkspace"),
+  vodSearch: $("#vodSearch"),
+  vodCategories: $("#vodCategories"),
+  vodCategoryTitle: $("#vodCategoryTitle"),
+  vodCategoryMeta: $("#vodCategoryMeta"),
+  vodGrid: $("#vodGrid"),
+  vodLoadMore: $("#vodLoadMore"),
+  vodLoadSpinner: $("#vodLoadSpinner"),
+  vodEndMessage: $("#vodEndMessage"),
 
-  serviceId: document.querySelector("#serviceId"),
+  vodPlayerSection: $("#vodPlayerSection"),
+  vodPlayerContainer: $("#vodPlayerContainer"),
+  vodVideo: $("#vodVideo"),
+  vodVideoLoading: $("#vodVideoLoading"),
+  vodPlayerControls: $("#vodPlayerControls"),
+  vodControlTitle: $("#vodControlTitle"),
+  vodProgressContainer: $("#vodProgressContainer"),
+  vodProgressBar: $("#vodProgressBar"),
+  vodPlayPauseBtn: $("#vodPlayPauseBtn"),
+  vodMuteBtn: $("#vodMuteBtn"),
+  vodVolumeSlider: $("#vodVolumeSlider"),
+  vodTimeDisplay: $("#vodTimeDisplay"),
+  closeVodPlayerButton: $("#closeVodPlayerButton"),
+  vodFullscreenBtn: $("#vodFullscreenBtn"),
 
-  mac: document.querySelector("#mac"),
+  vodModal: $("#vodModal"),
+  vodClose: $("#vodClose"),
+  vodModalPoster: $("#vodModalPoster"),
+  vodModalTitle: $("#vodModalTitle"),
+  vodModalMeta: $("#vodModalMeta"),
+  vodModalDescription: $("#vodModalDescription"),
+  vodPlayButton: $("#vodPlayButton"),
+  vodResumeButton: $("#vodResumeButton"),
 
-  parentalPin: document.querySelector("#parentalPin"),
+  pinModal: $("#pinModal"),
+  closePinModal: $("#closePinModal"),
+  pinUnlockForm: $("#pinUnlockForm"),
+  unlockPin: $("#unlockPin"),
+  unlockPinError: $("#unlockPinError"),
+  unlockPinButton: $("#unlockPinButton"),
 
-  status: document.querySelector("#status"),
-
-  categories: document.querySelector("#categories"),
-
-  channels: document.querySelector("#channels"),
-
-  groupCount: document.querySelector("#groupCount"),
-
-  channelCount: document.querySelector("#channelCount"),
-
-  search: document.querySelector("#search"),
-
-  video: document.querySelector("#video"),
-
-  placeholder: document.querySelector("#placeholder"),
-
-  videoLoading: document.querySelector("#videoLoading"),
-
-  notice: document.querySelector("#notice"),
-
-  nowPlaying: document.querySelector("#nowPlaying"),
-
-  playerModeBadge: document.querySelector("#playerModeBadge"),
-
-  settingsButton: document.querySelector("#settingsButton"),
-
-  modebar: document.querySelector("#modebar"),
-
-  vodWorkspace: document.querySelector("#vodWorkspace"),
-
-  vodRows: document.querySelector("#vodRows"),
-
-  vodSearch: document.querySelector("#vodSearch"),
-
-  vodModal: document.querySelector("#vodModal"),
-
-  vodClose: document.querySelector("#vodClose"),
-
-  vodModalPoster: document.querySelector("#vodModalPoster"),
-
-  vodModalTitle: document.querySelector("#vodModalTitle"),
-
-  vodModalMeta: document.querySelector("#vodModalMeta"),
-
-  vodModalDescription: document.querySelector(
-    "#vodModalDescription"
-  ),
-
-  vodPlayButton: document.querySelector("#vodPlayButton"),
-
-  vodResumeButton: document.querySelector("#vodResumeButton"),
-
-  editGroupsButton: document.querySelector("#editGroupsButton"),
-
-  editChannelsButton: document.querySelector(
-    "#editChannelsButton"
-  ),
-
-  settingsModal: document.querySelector("#settingsModal"),
-
-  closeSettingsButton: document.querySelector(
-    "#closeSettingsButton"
-  ),
-
-  themeSelect: document.querySelector("#themeSelect"),
-
-  newParentalPin: document.querySelector(
-    "#newParentalPin"
-  ),
-
-  updatePinButton: document.querySelector(
-    "#updatePinButton"
-  ),
-
-  pinNotice: document.querySelector("#pinNotice"),
-
-  resetPortalButton: document.querySelector(
-    "#resetPortalButton"
-  ),
-
-  playerContainer: document.querySelector(
-    "#playerContainer"
-  ),
-
-  customControls: document.querySelector(
-    "#customControls"
-  ),
-
-  controlTitle: document.querySelector("#controlTitle"),
-
-  controlEpg: document.querySelector("#controlEpg"),
-
-  progressContainer: document.querySelector(
-    "#progressContainer"
-  ),
-
-  progressBar: document.querySelector("#progressBar"),
-
-  playPauseBtn: document.querySelector("#playPauseBtn"),
-
-  muteBtn: document.querySelector("#muteBtn"),
-
-  volumeSlider: document.querySelector("#volumeSlider"),
-
-  timeDisplay: document.querySelector("#timeDisplay"),
-
-  fullscreenBtn: document.querySelector("#fullscreenBtn")
+  settingsModal: $("#settingsModal"),
+  closeSettingsButton: $("#closeSettingsButton"),
+  themeSelect: $("#themeSelect"),
+  newParentalPin: $("#newParentalPin"),
+  updatePinButton: $("#updatePinButton"),
+  pinNotice: $("#pinNotice"),
+  resetPortalButton: $("#resetPortalButton"),
 };
 
 
 /* =====================================================
-   UTILITIES
+   HELPERS
 ===================================================== */
 
-async function request(url, options) {
-  const response = await fetch(url, options);
+async function request(url, options = {}) {
+  const response = await fetch(url, {
+    cache: "no-store",
+    ...options,
+  });
 
-  const payload = await response
-    .json()
-    .catch(() => ({}));
+  const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(
-      payload.error ||
-      `Request failed (${response.status}).`
-    );
+    throw new Error(payload.error || `Request failed (${response.status}).`);
   }
 
   return payload;
 }
 
-
 function setStatus(text, online = false) {
-  const span = elements.status?.querySelector("span");
-
-  if (span) {
-    span.textContent = text;
-  }
-
-  elements.status?.classList.toggle(
-    "online",
-    online
-  );
+  elements.status.querySelector("span").textContent = text;
+  elements.status.classList.toggle("online", online);
 }
-
 
 function showNotice(message = "") {
-  if (!elements.notice) return;
-
   elements.notice.textContent = message;
-
   elements.notice.hidden = !message;
 }
-
 
 function initials(name) {
   return String(name || "")
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map(part => part[0])
+    .map((part) => part[0])
     .join("")
     .toUpperCase() || "TV";
 }
 
-
 function formatTime(seconds) {
-  if (!Number.isFinite(seconds)) {
-    return "0:00";
-  }
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value < 0) return "0:00";
 
-  const total = Math.max(
-    0,
-    Math.floor(seconds)
-  );
-
-  const hours = Math.floor(total / 3600);
-
-  const minutes = Math.floor(
-    (total % 3600) / 60
-  );
-
-  const secs = total % 60;
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const secs = Math.floor(value % 60);
 
   if (hours > 0) {
-    return (
-      `${hours}:` +
-      `${String(minutes).padStart(2, "0")}:` +
-      `${String(secs).padStart(2, "0")}`
-    );
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
-  return (
-    `${minutes}:` +
-    `${String(secs).padStart(2, "0")}`
-  );
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
 }
-
-
-function saveSet(key, set) {
-  localStorage.setItem(
-    key,
-    JSON.stringify([...set])
-  );
-}
-
-
-/* =====================================================
-   THEME
-===================================================== */
 
 function applyTheme() {
-  document.body.classList.remove(
-    "theme-dark",
-    "theme-light"
-  );
-
-  document.body.classList.add(
-    `theme-${state.theme}`
-  );
-
-  if (elements.themeSelect) {
-    elements.themeSelect.value = state.theme;
-  }
+  document.body.className = `theme-${state.theme}`;
+  elements.themeSelect.value = state.theme;
 }
 
-applyTheme();
+function persistSet(key, set) {
+  localStorage.setItem(key, JSON.stringify([...set]));
+}
 
+function saveWatchHistory() {
+  localStorage.setItem("watchHistory", JSON.stringify(state.watchHistory));
+}
 
-/* =====================================================
-   SETUP / APP VISIBILITY
-===================================================== */
+function categoryById(id) {
+  return state.catalog?.categories?.find((category) => category.id === id);
+}
+
+function vodCategoryById(id) {
+  return state.vod.categories.find((category) => category.id === id);
+}
+
+function stopMedia(video) {
+  try {
+    video.pause();
+  } catch {
+    // Ignore.
+  }
+  video.removeAttribute("src");
+  video.load();
+}
+
+function destroyHls(key) {
+  const hls = key === "live" ? state.hls : state.vod.hls;
+  if (hls) {
+    try {
+      hls.destroy();
+    } catch {
+      // Ignore.
+    }
+  }
+
+  if (key === "live") state.hls = null;
+  else state.vod.hls = null;
+}
 
 function showSetup() {
+  destroyHls("live");
+  destroyHls("vod");
+  stopMedia(elements.video);
+  stopMedia(elements.vodVideo);
+
   elements.setup.hidden = false;
-
-  elements.workspace.hidden = true;
-
-  elements.vodWorkspace.hidden = true;
-
-  elements.modebar.hidden = true;
-
   elements.topbar.hidden = true;
+  elements.modebar.hidden = true;
+  elements.workspace.hidden = true;
+  elements.vodWorkspace.hidden = true;
+  elements.settingsModal.hidden = true;
+  elements.vodModal.hidden = true;
+  elements.pinModal.hidden = true;
 
   elements.setupError.hidden = true;
-
   setStatus("Setup required");
 }
 
+function setMode(mode) {
+  const isVod = mode === "vod";
 
-function showApplication() {
-  elements.setup.hidden = true;
+  elements.workspace.hidden = isVod;
+  elements.vodWorkspace.hidden = !isVod;
 
-  elements.topbar.hidden = false;
+  document.querySelectorAll(".mode-button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.mode === mode);
+  });
 
-  elements.modebar.hidden = false;
+  if (isVod && !state.vod.categories.length) {
+    loadVodCategories();
+  }
 }
 
 
 /* =====================================================
-   MODE
+   MAC INPUT
 ===================================================== */
 
-function setMode(mode) {
-  state.mode = mode;
+const MAC_PREFIX = "00:1A:79";
 
-  elements.workspace.hidden =
-    mode !== "live";
+function formatMacValue(raw) {
+  let hex = String(raw || "")
+    .toUpperCase()
+    .replace(/[^0-9A-F]/g, "");
 
-  elements.vodWorkspace.hidden =
-    mode !== "vod";
+  // Keep the NetPlus MAG prefix fixed while still allowing
+  // users to paste a complete MAC address.
+  if (!hex.startsWith("001A79")) {
+    const suffix = hex.slice(-6);
+    hex = `001A79${suffix}`;
+  }
 
-  document
-    .querySelectorAll(".mode-button")
-    .forEach(button => {
-      button.classList.toggle(
-        "active",
-        button.dataset.mode === mode
-      );
-    });
+  hex = hex.slice(0, 12);
+
+  const groups = [];
+  for (let i = 0; i < hex.length; i += 2) {
+    groups.push(hex.slice(i, i + 2));
+  }
+
+  let value = groups.join(":");
+
+  if (hex.length <= 6) {
+    value = MAC_PREFIX + ":";
+  }
+
+  return value.slice(0, 17);
+}
+
+function keepMacCaretAtEnd() {
+  requestAnimationFrame(() => {
+    const end = elements.mac.value.length;
+    try {
+      elements.mac.setSelectionRange(end, end);
+    } catch {
+      // Some environments do not expose selection APIs.
+    }
+  });
+}
+
+elements.mac.addEventListener("focus", () => {
+  if (!elements.mac.value || elements.mac.value.length < 9) {
+    elements.mac.value = `${MAC_PREFIX}:`;
+  }
+  keepMacCaretAtEnd();
+});
+
+elements.mac.addEventListener("input", () => {
+  elements.mac.value = formatMacValue(elements.mac.value);
+  keepMacCaretAtEnd();
+});
+
+elements.mac.addEventListener("keydown", (event) => {
+  const prefixLength = `${MAC_PREFIX}:`.length;
 
   if (
-    mode === "vod" &&
-    !state.vod.loaded
+    (event.key === "Backspace" || event.key === "Delete") &&
+    (elements.mac.selectionStart ?? prefixLength) <= prefixLength
   ) {
-    loadVod();
+    event.preventDefault();
   }
-}
+});
+
+elements.mac.addEventListener("paste", (event) => {
+  const text = event.clipboardData?.getData("text");
+  if (!text) return;
+
+  event.preventDefault();
+  elements.mac.value = formatMacValue(text);
+  keepMacCaretAtEnd();
+});
 
 
 /* =====================================================
-   PARENTAL CONTROL
+   PARENTAL UNLOCK
 ===================================================== */
 
-async function unlockParental() {
+function closePinModal(cancelPending = true) {
+  elements.pinModal.hidden = true;
+  elements.unlockPin.value = "";
+  elements.unlockPinError.hidden = true;
+
+  if (cancelPending) {
+    state.pendingUnlockAction = null;
+  }
+}
+
+function requestParentalUnlock(action) {
   if (state.parentalUnlocked) {
-    return true;
+    action?.();
+    return;
   }
 
-  const pin = window.prompt(
-    "Enter your 4-digit parental PIN."
-  );
+  state.pendingUnlockAction = action || null;
+  elements.unlockPin.value = "";
+  elements.unlockPinError.hidden = true;
+  elements.pinModal.hidden = false;
 
-  if (pin === null) {
-    return false;
-  }
+  setTimeout(() => elements.unlockPin.focus(), 50);
+}
+
+elements.pinUnlockForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const pin = elements.unlockPin.value.trim();
 
   if (!/^\d{4}$/.test(pin)) {
-    showNotice(
-      "Enter a valid 4-digit parental PIN."
-    );
-
-    return false;
+    elements.unlockPinError.textContent = "Enter your 4-digit parental PIN.";
+    elements.unlockPinError.hidden = false;
+    return;
   }
 
+  elements.unlockPinButton.disabled = true;
+  elements.unlockPinButton.textContent = "Unlockingâ¦";
+  elements.unlockPinError.hidden = true;
+
   try {
-    await request(
-      "/api/parental/verify",
-      {
-        method: "POST",
-
-        headers: {
-          "content-type": "application/json"
-        },
-
-        body: JSON.stringify({ pin })
-      }
-    );
+    await request("/api/parental/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pin }),
+    });
 
     state.parentalUnlocked = true;
 
-    showNotice("");
+    const action = state.pendingUnlockAction;
+    state.pendingUnlockAction = null;
 
+    closePinModal(false);
     renderCategories();
-
     renderChannels();
+    renderVodCategories();
 
-    renderVod();
-
-    return true;
-
+    if (action) action();
   } catch (error) {
-    showNotice(error.message);
-
-    return false;
+    elements.unlockPinError.textContent = error.message;
+    elements.unlockPinError.hidden = false;
+    elements.unlockPin.select();
+  } finally {
+    elements.unlockPinButton.disabled = false;
+    elements.unlockPinButton.textContent = "Unlock";
   }
-}
+});
+
+elements.closePinModal.addEventListener("click", () => closePinModal(true));
+
+elements.pinModal.addEventListener("click", (event) => {
+  if (event.target === elements.pinModal) closePinModal(true);
+});
 
 
 /* =====================================================
-   CATEGORIES
+   LIVE CATALOG
 ===================================================== */
 
 function renderCategories() {
   if (!state.catalog) return;
 
-  const portalCategories =
-    state.catalog.categories.filter(category => {
-      return (
-        state.editingGroups ||
-        !state.hiddenGroups.has(category.id)
-      );
-    });
+  const visiblePortalCategories = state.catalog.categories.filter((category) => {
+    return state.editingGroups || !state.hiddenGroups.has(category.id);
+  });
 
   const categories = [
-    {
-      id: "favorites",
-      title: "⭐ Favorites",
-      locked: false
-    },
-
-    {
-      id: "all",
-      title: "All channels",
-      locked: false
-    },
-
-    ...portalCategories
+    { id: "favorites", title: "â­ Favorites", locked: false },
+    { id: "all", title: "All channels", locked: false },
+    ...visiblePortalCategories,
   ];
 
-
-  const visiblePortalCount =
-    portalCategories.length;
-
   elements.groupCount.textContent =
-    `${visiblePortalCount} groups`;
+    `${visiblePortalCategories.length.toLocaleString()} groups`;
 
-
-  const buttons = categories.map(category => {
-    const button =
-      document.createElement("button");
-
+  const nodes = categories.map((category) => {
+    const button = document.createElement("button");
     button.type = "button";
+    button.className =
+      `category-button${state.category === category.id ? " active" : ""}`;
 
-    button.className = "category-button";
-
-    if (state.category === category.id) {
-      button.classList.add("active");
-    }
-
-    if (
-      state.hiddenGroups.has(category.id)
-    ) {
+    if (state.hiddenGroups.has(category.id)) {
       button.classList.add("hidden-item");
     }
 
+    const title = document.createElement("span");
 
-    const title =
-      category.locked &&
-      !state.parentalUnlocked
-        ? "🔒 Protected content"
-        : category.title;
-
-
-    const text =
-      document.createElement("span");
-
-    text.textContent = title;
-
-
-    const arrow =
-      document.createElement("em");
-
-    arrow.textContent = "›";
-
+    if (category.locked && !state.parentalUnlocked) {
+      title.textContent = `ð ${category.title}`;
+    } else {
+      title.textContent = category.title;
+    }
 
     if (
       state.editingGroups &&
-      !["all", "favorites"].includes(
-        category.id
-      )
+      !["all", "favorites"].includes(category.id)
     ) {
-      const visibility =
-        document.createElement("span");
-
-      visibility.className =
-        "visibility-toggle";
-
+      const visibility = document.createElement("span");
+      visibility.className = "visibility-toggle";
       visibility.textContent =
-        state.hiddenGroups.has(category.id)
-          ? "❌"
-          : "👁";
+        state.hiddenGroups.has(category.id) ? "â" : "ð";
 
-      visibility.addEventListener(
-        "click",
-        event => {
-          event.stopPropagation();
+      visibility.addEventListener("click", (event) => {
+        event.stopPropagation();
 
-          if (
-            state.hiddenGroups.has(
-              category.id
-            )
-          ) {
-            state.hiddenGroups.delete(
-              category.id
-            );
-          } else {
-            state.hiddenGroups.add(
-              category.id
-            );
-          }
-
-          saveSet(
-            "hiddenGroups",
-            state.hiddenGroups
-          );
-
-          renderCategories();
+        if (state.hiddenGroups.has(category.id)) {
+          state.hiddenGroups.delete(category.id);
+        } else {
+          state.hiddenGroups.add(category.id);
         }
-      );
 
-      button.append(
-        visibility,
-        text,
-        arrow
-      );
+        persistSet("hiddenGroups", state.hiddenGroups);
+        renderCategories();
+      });
 
-    } else {
-      button.append(text, arrow);
+      button.append(visibility);
     }
 
+    const arrow = document.createElement("em");
+    arrow.textContent = "âº";
 
-    button.addEventListener(
-      "click",
-      async () => {
-        if (state.editingGroups) {
-          return;
-        }
+    button.append(title, arrow);
 
-        if (
-          category.locked &&
-          !(await unlockParental())
-        ) {
-          return;
-        }
+    button.addEventListener("click", () => {
+      if (state.editingGroups) return;
 
+      const choose = () => {
         state.category = category.id;
-
         renderCategories();
-
         renderChannels();
+      };
+
+      if (category.locked && !state.parentalUnlocked) {
+        requestParentalUnlock(choose);
+        return;
       }
-    );
+
+      choose();
+    });
 
     return button;
   });
 
-
-  elements.categories.replaceChildren(
-    ...buttons
-  );
+  elements.categories.replaceChildren(...nodes);
 }
-
-
-/* =====================================================
-   CHANNEL FILTERING
-===================================================== */
 
 function filteredChannels() {
-  if (!state.catalog) {
-    return [];
-  }
+  if (!state.catalog) return [];
 
-  const query =
-    state.query.trim().toLowerCase();
+  const query = state.query.trim().toLowerCase();
 
+  return state.catalog.channels.filter((channel) => {
+    const category = categoryById(channel.genreId);
 
-  return state.catalog.channels.filter(
-    channel => {
+    // Adult/protected channels never become visible just because
+    // "All channels" is selected. Unlocking is required first.
+    if (category?.locked && !state.parentalUnlocked) return false;
 
-      const favoriteCategory =
-        state.category === "favorites";
+    const inCategory =
+      state.category === "favorites"
+        ? state.favoriteChannels.has(channel.id)
+        : state.category === "all" || channel.genreId === state.category;
 
+    const matchesSearch =
+      !query || channel.name.toLowerCase().includes(query);
 
-      const inCategory =
-        favoriteCategory
-          ? state.favoriteChannels.has(
-              channel.id
-            )
-          : (
-              state.category === "all" ||
-              channel.genreId ===
-                state.category
-            );
+    const visible =
+      state.editingChannels || !state.hiddenChannels.has(channel.id);
 
-
-      const matchesSearch =
-        !query ||
-        channel.name
-          .toLowerCase()
-          .includes(query);
-
-
-      const visible =
-        state.editingChannels ||
-        !state.hiddenChannels.has(
-          channel.id
-        );
-
-
-      return (
-        inCategory &&
-        matchesSearch &&
-        visible
-      );
-    }
-  );
+    return inCategory && matchesSearch && visible;
+  });
 }
 
-
-/* =====================================================
-   CHANNEL RENDERING
-===================================================== */
-
 function renderChannels() {
-  const filtered =
-    filteredChannels();
+  if (!state.catalog) return;
+
+  const filtered = filteredChannels();
 
   elements.channelCount.textContent =
     `${filtered.length.toLocaleString()} channels`;
 
+  const rows = filtered.slice(0, 400).map((channel) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className =
+      `channel-button${state.selected?.id === channel.id ? " active" : ""}`;
 
-  const rows =
-    filtered
-      .slice(0, 300)
-      .map(channel => {
+    if (state.hiddenChannels.has(channel.id)) {
+      button.classList.add("hidden-item");
+    }
 
-        const button =
-          document.createElement("button");
+    const toggle = document.createElement("span");
 
-        button.type = "button";
+    if (state.editingChannels) {
+      toggle.className = "visibility-toggle";
+      toggle.textContent =
+        state.hiddenChannels.has(channel.id) ? "â" : "ð";
+    } else {
+      toggle.className =
+        `favorite-toggle${state.favoriteChannels.has(channel.id) ? " is-favorite" : ""}`;
+      toggle.textContent = "â­";
+    }
 
-        button.className =
-          "channel-button";
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
 
-
-        if (
-          state.selected?.kind === "live" &&
-          state.selected?.id === channel.id
-        ) {
-          button.classList.add("active");
-        }
-
-
-        if (
-          state.hiddenChannels.has(
-            channel.id
-          )
-        ) {
-          button.classList.add(
-            "hidden-item"
-          );
-        }
-
-
-        /* Toggle */
-
-        const toggle =
-          document.createElement("span");
-
-
-        if (state.editingChannels) {
-
-          toggle.className =
-            "visibility-toggle";
-
-          toggle.textContent =
-            state.hiddenChannels.has(
-              channel.id
-            )
-              ? "❌"
-              : "👁";
-
+      if (state.editingChannels) {
+        if (state.hiddenChannels.has(channel.id)) {
+          state.hiddenChannels.delete(channel.id);
         } else {
-
-          toggle.className =
-            "favorite-toggle";
-
-          if (
-            state.favoriteChannels.has(
-              channel.id
-            )
-          ) {
-            toggle.classList.add(
-              "is-favorite"
-            );
-          }
-
-          toggle.textContent = "⭐";
+          state.hiddenChannels.add(channel.id);
         }
 
+        persistSet("hiddenChannels", state.hiddenChannels);
+      } else {
+        if (state.favoriteChannels.has(channel.id)) {
+          state.favoriteChannels.delete(channel.id);
+        } else {
+          state.favoriteChannels.add(channel.id);
+        }
 
-        toggle.addEventListener(
-          "click",
-          event => {
-            event.stopPropagation();
+        persistSet("favoriteChannels", state.favoriteChannels);
+      }
 
+      renderChannels();
+    });
 
-            if (state.editingChannels) {
+    const icon = document.createElement("span");
+    icon.className = "channel-icon";
+    icon.textContent = initials(channel.name);
 
-              if (
-                state.hiddenChannels.has(
-                  channel.id
-                )
-              ) {
-                state.hiddenChannels.delete(
-                  channel.id
-                );
-              } else {
-                state.hiddenChannels.add(
-                  channel.id
-                );
-              }
+    const copy = document.createElement("span");
+    copy.className = "channel-copy";
 
-              saveSet(
-                "hiddenChannels",
-                state.hiddenChannels
-              );
+    const name = document.createElement("strong");
+    name.textContent = channel.name;
 
-            } else {
+    const meta = document.createElement("small");
+    meta.textContent =
+      `${channel.number ? `Channel ${channel.number}` : "Live"}${channel.hd ? " Â· HD" : ""}`;
 
-              if (
-                state.favoriteChannels.has(
-                  channel.id
-                )
-              ) {
-                state.favoriteChannels.delete(
-                  channel.id
-                );
-              } else {
-                state.favoriteChannels.add(
-                  channel.id
-                );
-              }
+    copy.append(name, meta);
 
-              saveSet(
-                "favoriteChannels",
-                state.favoriteChannels
-              );
-            }
+    const play = document.createElement("span");
+    play.className = "channel-play";
+    play.textContent = "â¶";
 
+    button.append(toggle, icon, copy, play);
 
-            renderChannels();
-          }
-        );
+    button.addEventListener("click", () => {
+      if (!state.editingChannels) playLive(channel);
+    });
 
-
-        /* Icon */
-
-        const icon =
-          document.createElement("span");
-
-        icon.className =
-          "channel-icon";
-
-        icon.textContent =
-          initials(channel.name);
-
-
-        /* Text */
-
-        const copy =
-          document.createElement("span");
-
-        copy.className =
-          "channel-copy";
-
-
-        const name =
-          document.createElement("strong");
-
-        name.textContent =
-          channel.name;
-
-
-        const meta =
-          document.createElement("small");
-
-        meta.textContent =
-          `${
-            channel.number
-              ? `Channel ${channel.number}`
-              : "Live"
-          }${
-            channel.hd
-              ? " · HD"
-              : ""
-          }`;
-
-
-        copy.append(name, meta);
-
-
-        /* Play */
-
-        const play =
-          document.createElement("span");
-
-        play.className =
-          "channel-play";
-
-        play.textContent = "▶";
-
-
-        button.append(
-          toggle,
-          icon,
-          copy,
-          play
-        );
-
-
-        button.addEventListener(
-          "click",
-          () => {
-            if (!state.editingChannels) {
-              playLive(channel);
-            }
-          }
-        );
-
-
-        return button;
-      });
-
-
-  if (filtered.length > 300) {
-    const note =
-      document.createElement("p");
-
-    note.className =
-      "list-note";
-
-    note.textContent =
-      "Showing 300 results. Search to narrow the list.";
-
-    rows.push(note);
-  }
-
+    return button;
+  });
 
   if (!rows.length) {
-    const note =
-      document.createElement("p");
-
-    note.className =
-      "list-note";
-
-    note.textContent =
+    const empty = document.createElement("p");
+    empty.className = "list-note";
+    empty.textContent =
       state.category === "favorites"
-        ? "No favorite channels yet. Tap ⭐ beside a channel to add it."
+        ? "No favorite channels yet. Tap â­ beside a channel to add it."
         : "No channels found.";
-
+    rows.push(empty);
+  } else if (filtered.length > 400) {
+    const note = document.createElement("p");
+    note.className = "list-note";
+    note.textContent =
+      "Showing the first 400 matches. Search to narrow the list.";
     rows.push(note);
   }
 
-
-  elements.channels.replaceChildren(
-    ...rows
-  );
+  elements.channels.replaceChildren(...rows);
 }
 
-
-/* =====================================================
-   CATALOG
-===================================================== */
-
 async function loadCatalog() {
-  showApplication();
+  elements.setup.hidden = true;
+  elements.topbar.hidden = false;
+  elements.modebar.hidden = false;
+  elements.workspace.hidden = false;
 
   setMode("live");
-
   setStatus("Connecting");
-
   showNotice("");
 
   elements.channels.innerHTML =
-    '<p class="list-note">Loading portal catalogue…</p>';
-
+    '<p class="list-note">Loading portal catalogueâ¦</p>';
 
   try {
+    state.catalog = await request("/api/catalog");
+    setStatus("Portal connected", true);
 
-    state.catalog =
-      await request("/api/catalog");
-
-
-    setStatus(
-      "Portal connected",
-      true
-    );
-
+    if (
+      state.category !== "all" &&
+      state.category !== "favorites" &&
+      !categoryById(state.category)
+    ) {
+      state.category = "all";
+    }
 
     renderCategories();
-
     renderChannels();
-
-
   } catch (error) {
-
-    setStatus(
-      "Connection failed"
-    );
-
-    showNotice(
-      error.message
-    );
+    setStatus("Connection failed");
+    showNotice(error.message);
   }
 }
 
 
 /* =====================================================
-   PLAYER RESET
+   LIVE PLAYBACK
 ===================================================== */
 
-function destroyHls() {
-  if (state.hls) {
-    try {
-      state.hls.destroy();
-    } catch {
-      // Ignore cleanup errors.
-    }
-
-    state.hls = null;
-  }
-}
-
-
-function resetPlayer() {
-  destroyHls();
+function resetLivePlayer() {
+  state.liveRetryToken += 1;
+  destroyHls("live");
 
   try {
     elements.video.pause();
@@ -992,1474 +699,628 @@ function resetPlayer() {
   }
 
   elements.video.removeAttribute("src");
+  elements.video.load();
 
-  try {
-    elements.video.load();
-  } catch {
-    // Ignore.
-  }
-
+  elements.videoLoading.hidden = true;
   elements.customControls.hidden = true;
-
-  elements.progressBar.style.width =
-    "0%";
+  elements.progressBar.style.width = "100%";
+  elements.timeDisplay.textContent = "LIVE";
 }
 
+function livePlaybackFailed(message) {
+  elements.videoLoading.hidden = true;
+  showNotice(message);
+}
 
-/* =====================================================
-   HLS PLAYBACK
-===================================================== */
-
-function attachHls(
-  stream,
-  retry,
-  generation
-) {
-
-  const hls =
-    new window.Hls({
-
-      enableWorker: true,
-
-      lowLatencyMode: false,
-
-      backBufferLength: 60,
-
-      maxBufferLength: 30,
-
-      maxMaxBufferLength: 60,
-
-      manifestLoadingTimeOut: 30000,
-
-      manifestLoadingMaxRetry: 2,
-
-      levelLoadingTimeOut: 30000,
-
-      levelLoadingMaxRetry: 2,
-
-      fragLoadingTimeOut: 30000,
-
-      fragLoadingMaxRetry: 3
-    });
-
+function attachLiveHls(stream, token) {
+  const hls = new window.Hls({
+    enableWorker: true,
+    lowLatencyMode: false,
+    backBufferLength: 30,
+    maxBufferLength: 30,
+    maxMaxBufferLength: 60,
+    manifestLoadingTimeOut: 30000,
+    levelLoadingTimeOut: 30000,
+    fragLoadingTimeOut: 30000,
+    manifestLoadingMaxRetry: 4,
+    levelLoadingMaxRetry: 4,
+    fragLoadingMaxRetry: 6,
+    fragLoadingRetryDelay: 1000,
+    fragLoadingMaxRetryTimeout: 12000,
+  });
 
   state.hls = hls;
 
+  let networkRecoveries = 0;
+  let mediaRecoveries = 0;
+  let sourceReloads = 0;
+  let lastRecovery = 0;
 
-  hls.loadSource(stream);
+  const reloadCurrentChannel = () => {
+    if (token !== state.liveRetryToken || !state.selected) return;
 
-  hls.attachMedia(elements.video);
-
-
-  hls.on(
-    window.Hls.Events.MANIFEST_PARSED,
-    () => {
-
-      if (
-        generation !==
-        state.playbackGeneration
-      ) {
-        return;
-      }
-
-
-      elements.videoLoading.hidden =
-        true;
-
-      elements.customControls.hidden =
-        false;
-
-
-      if (
-        state.selected?.kind === "vod" &&
-        state.resumeTime > 0
-      ) {
-        try {
-          elements.video.currentTime =
-            state.resumeTime;
-        } catch {
-          // Ignore seek failure.
-        }
-      }
-
-
-      elements.video
-        .play()
-        .catch(() => {
-          // User interaction may be required.
-        });
-    }
-  );
-
-
-  hls.on(
-    window.Hls.Events.ERROR,
-    (_event, data) => {
-
-      if (
-        generation !==
-        state.playbackGeneration
-      ) {
-        return;
-      }
-
-
-      console.warn(
-        "HLS:",
-        data.type,
-        data.details,
-        data.fatal
+    if (sourceReloads >= 2) {
+      livePlaybackFailed(
+        "Playback stopped because the stream could not recover. Select the channel again or try another channel."
       );
+      return;
+    }
 
+    sourceReloads += 1;
+    const selectedId = state.selected.id;
 
-      /*
-      -------------------------------------------
-      Non-fatal errors:
-      HLS.js normally recovers itself.
-      -------------------------------------------
-      */
+    try {
+      hls.destroy();
+    } catch {
+      // Ignore.
+    }
 
-      if (!data.fatal) {
-        return;
-      }
+    state.hls = null;
 
-
-      /*
-      -------------------------------------------
-      LEVEL PARSING ERROR
-      Gemini feature preserved.
-
-      Invalid / blocked playlists should not
-      freeze the whole app.
-      -------------------------------------------
-      */
-
+    setTimeout(() => {
       if (
-        data.details ===
-        window.Hls.ErrorDetails
-          .LEVEL_PARSING_ERROR
+        token === state.liveRetryToken &&
+        state.selected?.id === selectedId
       ) {
-
-        if (retry.reload < 1) {
-
-          retry.reload += 1;
-
-          try {
-            hls.destroy();
-          } catch {
-            // Ignore.
-          }
-
-          state.hls = null;
-
-
-          setTimeout(() => {
-
-            if (
-              generation ===
-              state.playbackGeneration
-            ) {
-              playSelected(true);
-            }
-
-          }, 700);
-
-          return;
-        }
-
-
-        destroyHls();
-
-        elements.videoLoading.hidden =
-          true;
-
-
-        showNotice(
-          "This channel returned an invalid or blocked playlist. Select the channel again or try another channel."
-        );
-
-        return;
+        playSelectedLive(true);
       }
+    }, 1200);
+  };
 
+  hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+    if (token !== state.liveRetryToken) return;
 
-      /*
-      -------------------------------------------
-      NETWORK ERROR
-      -------------------------------------------
-      */
+    elements.videoLoading.hidden = true;
+    elements.customControls.hidden = false;
 
-      if (
-        data.type ===
-        window.Hls.ErrorTypes
-          .NETWORK_ERROR
-      ) {
+    elements.video.play().catch(() => {
+      // Browser may require a click before autoplay.
+    });
+  });
 
-        if (retry.network < 3) {
+  hls.on(window.Hls.Events.ERROR, (_event, data) => {
+    if (token !== state.liveRetryToken) return;
 
-          retry.network += 1;
+    // Ignore non-fatal HLS warnings. Many IPTV streams emit them
+    // while continuing to play correctly.
+    if (!data.fatal) return;
 
-          try {
-            hls.startLoad();
-          } catch {
-            // Fall through to reload.
-          }
+    const now = Date.now();
 
-          return;
-        }
-      }
-
-
-      /*
-      -------------------------------------------
-      MEDIA ERROR
-
-      recoverMediaError()
-      then swapAudioCodec() + recovery.
-
-      This preserves Gemini's
-      mediaSourceRequiresReset fix.
-      -------------------------------------------
-      */
-
-      if (
-        data.type ===
-        window.Hls.ErrorTypes
-          .MEDIA_ERROR
-      ) {
-
-        if (retry.media === 0) {
-
-          retry.media += 1;
-
-          try {
-            hls.recoverMediaError();
-
-            return;
-          } catch {
-            // Continue.
-          }
-        }
-
-
-        if (retry.media === 1) {
-
-          retry.media += 1;
-
-          try {
-            hls.swapAudioCodec();
-
-            hls.recoverMediaError();
-
-            return;
-          } catch {
-            // Continue.
-          }
-        }
-      }
-
-
-      /*
-      -------------------------------------------
-      FINAL STREAM RELOAD SAFETY NET
-      -------------------------------------------
-      */
-
-      if (
-        retry.reload < 2 &&
-        state.selected
-      ) {
-
-        retry.reload += 1;
-
-
-        try {
-          hls.destroy();
-        } catch {
-          // Ignore.
-        }
-
-
-        state.hls = null;
-
+    if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR) {
+      if (networkRecoveries < 5) {
+        networkRecoveries += 1;
 
         setTimeout(() => {
+          if (token !== state.liveRetryToken) return;
 
-          if (
-            generation ===
-            state.playbackGeneration
-          ) {
-            playSelected(true);
+          try {
+            hls.startLoad(-1);
+          } catch {
+            reloadCurrentChannel();
           }
-
-        }, 1000);
-
+        }, Math.min(1000 * networkRecoveries, 5000));
 
         return;
       }
 
-
-      /*
-      -------------------------------------------
-      GIVE UP CLEANLY
-      -------------------------------------------
-      */
-
-      destroyHls();
-
-      elements.videoLoading.hidden =
-        true;
-
-
-      showNotice(
-        `Playback stopped: ${
-          data.details ||
-          "stream error"
-        }. Select the channel again or try another channel.`
-      );
+      reloadCurrentChannel();
+      return;
     }
-  );
+
+    if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR) {
+      // Prevent recovery loops from firing repeatedly in a few ms.
+      if (now - lastRecovery < 700) return;
+      lastRecovery = now;
+
+      if (mediaRecoveries === 0) {
+        mediaRecoveries += 1;
+
+        try {
+          hls.recoverMediaError();
+          return;
+        } catch {
+          reloadCurrentChannel();
+          return;
+        }
+      }
+
+      if (mediaRecoveries === 1) {
+        mediaRecoveries += 1;
+
+        try {
+          // This is the important recovery path for streams that
+          // trigger mediaSourceRequiresReset / codec transitions.
+          hls.swapAudioCodec();
+          hls.recoverMediaError();
+          return;
+        } catch {
+          reloadCurrentChannel();
+          return;
+        }
+      }
+
+      reloadCurrentChannel();
+      return;
+    }
+
+    if (
+      data.details === window.Hls.ErrorDetails.LEVEL_PARSING_ERROR ||
+      String(data.details || "").toLowerCase().includes("levelparsing")
+    ) {
+      reloadCurrentChannel();
+      return;
+    }
+
+    reloadCurrentChannel();
+  });
+
+  hls.loadSource(stream);
+  hls.attachMedia(elements.video);
 }
 
+async function playSelectedLive(isRecovery = false) {
+  if (!state.selected || state.selected.kind !== "live") return;
 
-/* =====================================================
-   PLAY SELECTED
-===================================================== */
+  const selected = state.selected;
 
-async function playSelected(
-  preserveGeneration = false
-) {
-
-  if (!state.selected) {
-    return;
+  if (!isRecovery) {
+    resetLivePlayer();
+  } else {
+    destroyHls("live");
+    try {
+      elements.video.pause();
+    } catch {
+      // Ignore.
+    }
+    elements.video.removeAttribute("src");
+    elements.video.load();
   }
 
+  const token = ++state.liveRetryToken;
 
-  if (!preserveGeneration) {
-    state.playbackGeneration += 1;
-  }
-
-
-  const generation =
-    state.playbackGeneration;
-
-
-  resetPlayer();
-
-
-  elements.videoLoading.hidden =
-    false;
-
+  elements.placeholder.hidden = true;
+  elements.videoLoading.hidden = false;
   showNotice("");
 
+  elements.controlTitle.textContent = selected.name;
+  elements.controlEpg.textContent = "Live TV";
+  elements.playerModeBadge.textContent = "LIVE";
+  elements.nowPlaying.textContent = selected.name;
 
   try {
-
-    const isVod =
-      state.selected.kind === "vod";
-
-
-    const endpoint =
-      isVod
-        ? "/api/vod/play"
-        : "/api/play";
-
-
-    const body =
-      isVod
-        ? {
-            categoryId:
-              state.selected.categoryId,
-
-            itemId:
-              state.selected.id
-          }
-        : {
-            channelId:
-              state.selected.id
-          };
-
-
-    const payload =
-      await request(
-        endpoint,
-        {
-          method: "POST",
-
-          headers: {
-            "content-type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify(body)
-        }
-      );
-
+    const payload = await request("/api/play", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ channelId: selected.id }),
+    });
 
     if (
-      generation !==
-      state.playbackGeneration
+      token !== state.liveRetryToken ||
+      state.selected?.id !== selected.id
     ) {
       return;
     }
 
-
-    elements.controlTitle.textContent =
-      state.selected.title ||
-      state.selected.name ||
-      "NetPlus";
-
-
-    elements.controlEpg.textContent =
-      isVod
-        ? "On Demand"
-        : "Live TV";
-
-
-    elements.nowPlaying.textContent =
-      state.selected.title ||
-      state.selected.name ||
-      "Now Playing";
-
-
-    elements.playerModeBadge.textContent =
-      isVod
-        ? "VOD"
-        : "LIVE";
-
-
-    if (
-      window.Hls &&
-      window.Hls.isSupported()
-    ) {
-
-      attachHls(
-        payload.stream,
-        {
-          network: 0,
-          media: 0,
-          reload: 0
-        },
-        generation
-      );
-
+    if (window.Hls?.isSupported()) {
+      attachLiveHls(payload.stream, token);
       return;
     }
 
-
-    /*
-    -------------------------------------------
-    Native HLS fallback
-    -------------------------------------------
-    */
-
-    if (
-      elements.video.canPlayType(
-        "application/vnd.apple.mpegurl"
-      )
-    ) {
-
-      elements.video.src =
-        payload.stream;
-
-
-      const metadataHandler = () => {
-
-        if (
-          isVod &&
-          state.resumeTime > 0
-        ) {
-          try {
-            elements.video.currentTime =
-              state.resumeTime;
-          } catch {
-            // Ignore.
-          }
-        }
-      };
-
+    if (elements.video.canPlayType("application/vnd.apple.mpegurl")) {
+      elements.video.src = payload.stream;
 
       elements.video.addEventListener(
         "loadedmetadata",
-        metadataHandler,
+        () => {
+          if (token !== state.liveRetryToken) return;
+          elements.videoLoading.hidden = true;
+          elements.customControls.hidden = false;
+          elements.video.play().catch(() => {});
+        },
         { once: true }
       );
 
-
-      await elements.video.play();
-
-
-      elements.videoLoading.hidden =
-        true;
-
-      elements.customControls.hidden =
-        false;
-
       return;
     }
 
-
-    throw new Error(
-      "This device does not support HLS playback."
-    );
-
-
+    throw new Error("This device does not support HLS playback.");
   } catch (error) {
-
-    if (
-      generation !==
-      state.playbackGeneration
-    ) {
-      return;
+    if (token === state.liveRetryToken) {
+      livePlaybackFailed(error.message);
     }
-
-
-    elements.videoLoading.hidden =
-      true;
-
-
-    showNotice(
-      error.message ||
-      "Playback failed."
-    );
   }
 }
 
+function playLive(channel) {
+  const category = categoryById(channel.genreId);
 
-/* =====================================================
-   BEGIN PLAYBACK
-===================================================== */
-
-function beginPlayback(
-  item,
-  resumeFrom = 0
-) {
-
-  state.selected = item;
-
-  state.resumeTime =
-    Number(resumeFrom) || 0;
-
-
-  elements.nowPlaying.textContent =
-    item.title ||
-    item.name ||
-    "Now Playing";
-
-
-  elements.controlTitle.textContent =
-    item.title ||
-    item.name ||
-    "NetPlus";
-
-
-  elements.controlEpg.textContent =
-    item.kind === "vod"
-      ? "On Demand"
-      : "Live TV";
-
-
-  elements.playerModeBadge.textContent =
-    item.kind === "vod"
-      ? "VOD"
-      : "LIVE";
-
-
-  elements.placeholder.hidden = true;
-
-  elements.videoLoading.hidden =
-    false;
-
-
-  showNotice("");
-
-
-  renderChannels();
-
-
-  playSelected();
-}
-
-
-/* =====================================================
-   LIVE PLAYBACK
-===================================================== */
-
-async function playLive(channel) {
-
-  const category =
-    state.catalog?.categories.find(
-      entry =>
-        entry.id === channel.genreId
-    );
-
-
-  if (
-    category?.locked &&
-    !(await unlockParental())
-  ) {
-    return;
-  }
-
-
-  /*
-   Always show Live workspace
-   when playing live TV.
-  */
-
-  setMode("live");
-
-
-  beginPlayback(
-    {
+  const start = () => {
+    state.selected = {
       ...channel,
       kind: "live",
-      title: channel.name
-    },
-    0
-  );
+    };
+
+    renderChannels();
+    playSelectedLive(false);
+  };
+
+  if (category?.locked && !state.parentalUnlocked) {
+    requestParentalUnlock(start);
+    return;
+  }
+
+  start();
 }
 
 
 /* =====================================================
-   CUSTOM PLAYER CONTROLS
+   LIVE PLAYER CONTROLS
 ===================================================== */
 
-let controlTimeout = null;
+let liveControlTimeout;
+
+function revealLiveControls() {
+  if (elements.customControls.hidden) return;
+
+  elements.customControls.classList.add("active");
+  clearTimeout(liveControlTimeout);
+
+  liveControlTimeout = setTimeout(() => {
+    if (!elements.video.paused) {
+      elements.customControls.classList.remove("active");
+    }
+  }, 3000);
+}
+
+elements.playerContainer.addEventListener("mousemove", revealLiveControls);
+elements.playerContainer.addEventListener("click", revealLiveControls);
+
+elements.playPauseBtn.addEventListener("click", () => {
+  if (elements.video.paused) elements.video.play().catch(() => {});
+  else elements.video.pause();
+});
+
+elements.video.addEventListener("play", () => {
+  elements.playPauseBtn.textContent = "â¸";
+});
+
+elements.video.addEventListener("pause", () => {
+  elements.playPauseBtn.textContent = "â¶";
+  elements.customControls.classList.add("active");
+});
+
+elements.muteBtn.addEventListener("click", () => {
+  elements.video.muted = !elements.video.muted;
+  elements.muteBtn.textContent = elements.video.muted ? "ð" : "ð";
+  elements.volumeSlider.value =
+    elements.video.muted ? "0" : String(elements.video.volume);
+});
+
+elements.volumeSlider.addEventListener("input", (event) => {
+  const volume = Number(event.target.value);
+  elements.video.volume = volume;
+  elements.video.muted = volume === 0;
+  elements.muteBtn.textContent = volume === 0 ? "ð" : "ð";
+});
+
+elements.fullscreenBtn.addEventListener("click", () => {
+  toggleFullscreen(elements.playerContainer);
+});
 
 
-function showControlsTemporarily() {
+/* =====================================================
+   VOD CATEGORIES / GRID
+===================================================== */
 
+function renderVodCategories() {
+  const rows = state.vod.categories.map((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className =
+      `vod-category-button${state.vod.categoryId === category.id ? " active" : ""}`;
+
+    const title = document.createElement("span");
+    title.textContent = category.title;
+
+    button.append(title);
+
+    if (category.locked && !state.parentalUnlocked) {
+      const lock = document.createElement("span");
+      lock.className = "vod-lock";
+      lock.textContent = "ð";
+      button.append(lock);
+    }
+
+    button.addEventListener("click", () => {
+      const choose = () => selectVodCategory(category.id);
+
+      if (category.locked && !state.parentalUnlocked) {
+        requestParentalUnlock(choose);
+        return;
+      }
+
+      choose();
+    });
+
+    return button;
+  });
+
+  if (!rows.length) {
+    const note = document.createElement("p");
+    note.className = "list-note";
+    note.textContent = "No VOD categories are available.";
+    rows.push(note);
+  }
+
+  elements.vodCategories.replaceChildren(...rows);
+}
+
+function setPoster(element, item) {
+  element.textContent = initials(item.title);
+  element.style.backgroundImage = "";
+  element.classList.remove("has-poster");
+
+  const url = String(item.poster || "").trim();
+  if (!url) return;
+
+  const image = new Image();
+
+  image.onload = () => {
+    element.textContent = "";
+    element.style.backgroundImage =
+      `linear-gradient(0deg, rgba(2,5,9,.62), transparent 60%), url("${url.replace(/"/g, "%22")}")`;
+    element.classList.add("has-poster");
+  };
+
+  image.onerror = () => {
+    element.style.backgroundImage = "";
+    element.textContent = initials(item.title);
+  };
+
+  image.src = url;
+}
+
+function filteredVodItems() {
+  const query = state.vod.query.trim().toLowerCase();
+
+  if (!query) return state.vod.items;
+
+  return state.vod.items.filter((item) => {
+    const haystack = [
+      item.title,
+      item.description,
+      item.year,
+      item.rating,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(query);
+  });
+}
+
+function renderVodGrid() {
+  const items = filteredVodItems();
+
+  const cards = items.map((item) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "vod-movie-card";
+
+    const poster = document.createElement("span");
+    poster.className = "vod-movie-poster";
+    setPoster(poster, item);
+
+    const play = document.createElement("span");
+    play.className = "vod-card-play";
+    play.textContent = "â¶";
+
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+
+    const meta = document.createElement("small");
+    meta.textContent =
+      [item.year, item.rating && `â ${item.rating}`]
+        .filter(Boolean)
+        .join(" Â· ") || "On demand";
+
+    card.append(poster, play, title, meta);
+
+    card.addEventListener("click", () => {
+      openVodModal(item);
+    });
+
+    return card;
+  });
+
+  if (!cards.length) {
+    const note = document.createElement("p");
+    note.className = "list-note";
+    note.textContent = state.vod.query
+      ? "No loaded movies match your search."
+      : "No movies were returned for this category.";
+    cards.push(note);
+  }
+
+  elements.vodGrid.replaceChildren(...cards);
+
+  const category = vodCategoryById(state.vod.categoryId);
+  elements.vodCategoryTitle.textContent =
+    category?.title || "Movies & Series";
+
+  const loaded = state.vod.items.length;
+  const total = state.vod.total;
+
+  elements.vodCategoryMeta.textContent =
+    total > 0
+      ? `${loaded.toLocaleString()} loaded Â· ${total.toLocaleString()} available`
+      : `${loaded.toLocaleString()} titles loaded`;
+}
+
+async function loadVodCategories() {
+  elements.vodCategories.innerHTML =
+    '<p class="list-note">Loading categoriesâ¦</p>';
+
+  try {
+    const response = await request("/api/vod/categories");
+    state.vod.categories = Array.isArray(response.categories)
+      ? response.categories
+      : [];
+
+    renderVodCategories();
+
+    const firstUnlocked =
+      state.vod.categories.find((category) => !category.locked) ||
+      state.vod.categories[0];
+
+    if (firstUnlocked && !state.vod.categoryId) {
+      if (firstUnlocked.locked && !state.parentalUnlocked) {
+        elements.vodCategoryTitle.textContent = "Movies & Series";
+        elements.vodCategoryMeta.textContent =
+          "Choose a category from the left.";
+      } else {
+        selectVodCategory(firstUnlocked.id);
+      }
+    }
+  } catch (error) {
+    elements.vodCategories.innerHTML =
+      `<p class="list-note">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function selectVodCategory(categoryId) {
+  const category = vodCategoryById(categoryId);
+  if (!category) return;
+
+  if (category.locked && !state.parentalUnlocked) {
+    requestParentalUnlock(() => selectVodCategory(categoryId));
+    return;
+  }
+
+  state.vod.loadToken += 1;
+  state.vod.categoryId = categoryId;
+  state.vod.page = 0;
+  state.vod.total = 0;
+  state.vod.items = [];
+  state.vod.itemIds = new Set();
+  state.vod.ended = false;
+  state.vod.loading = false;
+  state.vod.query = elements.vodSearch.value.trim();
+
+  elements.vodEndMessage.hidden = true;
+  elements.vodGrid.innerHTML =
+    '<p class="list-note">Loading moviesâ¦</p>';
+
+  renderVodCategories();
+  await loadNextVodPage(true);
+}
+
+async function loadNextVodPage(reset = false) {
   if (
-    elements.customControls.hidden
+    state.vod.loading ||
+    state.vod.ended ||
+    !state.vod.categoryId
   ) {
     return;
   }
 
+  const category = vodCategoryById(state.vod.categoryId);
+  if (!category) return;
 
-  elements.customControls.classList.add(
-    "active"
-  );
+  if (category.locked && !state.parentalUnlocked) return;
 
+  const token = state.vod.loadToken;
+  const page = reset ? 0 : state.vod.page;
 
-  clearTimeout(controlTimeout);
-
-
-  controlTimeout =
-    setTimeout(() => {
-
-      if (!elements.video.paused) {
-        elements.customControls.classList.remove(
-          "active"
-        );
-      }
-
-    }, 3000);
-}
-
-
-elements.playerContainer.addEventListener(
-  "mousemove",
-  showControlsTemporarily
-);
-
-
-elements.playerContainer.addEventListener(
-  "click",
-  showControlsTemporarily
-);
-
-
-elements.playPauseBtn.addEventListener(
-  "click",
-  () => {
-
-    if (elements.video.paused) {
-
-      elements.video
-        .play()
-        .catch(() => {});
-
-    } else {
-
-      elements.video.pause();
-    }
-  }
-);
-
-
-elements.video.addEventListener(
-  "play",
-  () => {
-
-    elements.playPauseBtn.textContent =
-      "⏸";
-
-    showControlsTemporarily();
-  }
-);
-
-
-elements.video.addEventListener(
-  "pause",
-  () => {
-
-    elements.playPauseBtn.textContent =
-      "▶";
-
-    elements.customControls.classList.add(
-      "active"
-    );
-  }
-);
-
-
-/* =====================================================
-   VOLUME
-===================================================== */
-
-elements.muteBtn.addEventListener(
-  "click",
-  () => {
-
-    elements.video.muted =
-      !elements.video.muted;
-
-
-    elements.muteBtn.textContent =
-      elements.video.muted
-        ? "🔇"
-        : "🔊";
-
-
-    elements.volumeSlider.value =
-      elements.video.muted
-        ? "0"
-        : String(elements.video.volume);
-  }
-);
-
-
-elements.volumeSlider.addEventListener(
-  "input",
-  event => {
-
-    const volume =
-      Number(event.target.value);
-
-
-    elements.video.volume =
-      volume;
-
-
-    elements.video.muted =
-      volume === 0;
-
-
-    elements.muteBtn.textContent =
-      elements.video.muted
-        ? "🔇"
-        : "🔊";
-  }
-);
-
-
-/* =====================================================
-   FULLSCREEN
-===================================================== */
-
-async function toggleFullscreen() {
+  state.vod.loading = true;
+  elements.vodLoadSpinner.hidden = false;
+  elements.vodEndMessage.hidden = true;
 
   try {
-
-    if (!document.fullscreenElement) {
-
-      await elements.playerContainer
-        .requestFullscreen();
-
-    } else {
-
-      await document.exitFullscreen();
-    }
-
-  } catch (error) {
-
-    console.warn(
-      "Fullscreen error:",
-      error
-    );
-  }
-}
-
-
-elements.fullscreenBtn.addEventListener(
-  "click",
-  toggleFullscreen
-);
-
-
-/* =====================================================
-   TIME / WATCH HISTORY
-===================================================== */
-
-let lastHistorySecond = -1;
-
-
-elements.video.addEventListener(
-  "timeupdate",
-  () => {
-
-    const isVod =
-      state.selected?.kind === "vod";
-
-
-    if (
-      !isVod ||
-      !Number.isFinite(
-        elements.video.duration
-      ) ||
-      elements.video.duration <= 0
-    ) {
-
-      elements.timeDisplay.textContent =
-        "LIVE";
-
-      elements.progressBar.style.width =
-        "100%";
-
-      return;
-    }
-
-
-    const current =
-      elements.video.currentTime;
-
-    const duration =
-      elements.video.duration;
-
-
-    const percent =
-      Math.min(
-        100,
-        Math.max(
-          0,
-          (current / duration) * 100
-        )
-      );
-
-
-    elements.progressBar.style.width =
-      `${percent}%`;
-
-
-    elements.timeDisplay.textContent =
-      `${formatTime(current)} / ${formatTime(duration)}`;
-
-
-    /*
-    Save roughly every five seconds.
-    Avoid repeated writes during the same second.
-    */
-
-    const wholeSecond =
-      Math.floor(current);
-
-
-    if (
-      wholeSecond !==
-        lastHistorySecond &&
-      wholeSecond > 0 &&
-      wholeSecond % 5 === 0
-    ) {
-
-      lastHistorySecond =
-        wholeSecond;
-
-
-      state.watchHistory[
-        state.selected.id
-      ] = current;
-
-
-      localStorage.setItem(
-        "watchHistory",
-        JSON.stringify(
-          state.watchHistory
-        )
-      );
-    }
-  }
-);
-
-
-/* =====================================================
-   VOD SEEKING
-===================================================== */
-
-elements.progressContainer.addEventListener(
-  "click",
-  event => {
-
-    if (
-      state.selected?.kind !== "vod"
-    ) {
-      return;
-    }
-
-
-    const duration =
-      elements.video.duration;
-
-
-    if (
-      !Number.isFinite(duration) ||
-      duration <= 0
-    ) {
-      return;
-    }
-
-
-    const rect =
-      elements.progressContainer
-        .getBoundingClientRect();
-
-
-    const position =
-      Math.min(
-        1,
-        Math.max(
-          0,
-          (event.clientX - rect.left) /
-            rect.width
-        )
-      );
-
-
-    elements.video.currentTime =
-      position * duration;
-  }
-);
-
-
-/* =====================================================
-   KEYBOARD SHORTCUTS
-===================================================== */
-
-document.addEventListener(
-  "keydown",
-  event => {
-
-    const activeTag =
-      document.activeElement?.tagName;
-
-
-    if (
-      ["INPUT", "TEXTAREA", "SELECT"]
-        .includes(activeTag)
-    ) {
-      return;
-    }
-
-
-    if (!state.selected) {
-      return;
-    }
-
-
-    const key =
-      event.key.toLowerCase();
-
-
-    switch (key) {
-
-      case " ":
-
-        event.preventDefault();
-
-        elements.playPauseBtn.click();
-
-        break;
-
-
-      case "f":
-
-        event.preventDefault();
-
-        toggleFullscreen();
-
-        break;
-
-
-      case "m":
-
-        event.preventDefault();
-
-        elements.muteBtn.click();
-
-        break;
-
-
-      case "arrowup":
-      case "arrowdown": {
-
-        if (
-          state.selected.kind !== "live"
-        ) {
-          break;
-        }
-
-
-        event.preventDefault();
-
-
-        const channels =
-          filteredChannels();
-
-
-        if (!channels.length) {
-          return;
-        }
-
-
-        const index =
-          channels.findIndex(
-            channel =>
-              channel.id ===
-              state.selected.id
-          );
-
-
-        if (index < 0) {
-          return;
-        }
-
-
-        let nextIndex =
-          key === "arrowup"
-            ? index - 1
-            : index + 1;
-
-
-        if (nextIndex < 0) {
-          nextIndex =
-            channels.length - 1;
-        }
-
-
-        if (
-          nextIndex >=
-          channels.length
-        ) {
-          nextIndex = 0;
-        }
-
-
-        playLive(
-          channels[nextIndex]
-        );
-
-        break;
-      }
-    }
-  }
-);
-
-
-/* =====================================================
-   VOD POSTER
-===================================================== */
-
-function poster(element, item) {
-
-  element.textContent =
-    initials(item.title);
-
-
-  if (item.poster) {
-
-    element.style.backgroundImage =
-      `linear-gradient(
-        0deg,
-        rgba(2,5,9,.72),
-        transparent 70%
-      ),
-      url("${item.poster}")`;
-
-
-    element.classList.add(
-      "has-poster"
+    const result = await request(
+      `/api/vod/items?categoryId=${encodeURIComponent(state.vod.categoryId)}&page=${page}`
     );
 
-  } else {
+    if (token !== state.vod.loadToken) return;
 
-    element.style.backgroundImage =
-      "";
+    const incoming = Array.isArray(result.items) ? result.items : [];
+    let added = 0;
 
-    element.classList.remove(
-      "has-poster"
-    );
-  }
-}
+    for (const rawItem of incoming) {
+      if (!rawItem?.id || state.vod.itemIds.has(rawItem.id)) continue;
 
+      state.vod.itemIds.add(rawItem.id);
 
-/* =====================================================
-   VOD RENDER
-===================================================== */
-
-function renderVod() {
-
-  const query =
-    state.vod.query
-      .trim()
-      .toLowerCase();
-
-
-  const rows = [];
-
-
-  for (
-    const category of
-    state.vod.categories
-  ) {
-
-    const allItems =
-      state.vod.items.get(
-        category.id
-      ) || [];
-
-
-    const items =
-      allItems.filter(item => {
-
-        if (!query) {
-          return true;
-        }
-
-
-        const title =
-          String(
-            item.title || ""
-          ).toLowerCase();
-
-
-        const description =
-          String(
-            item.description || ""
-          ).toLowerCase();
-
-
-        return (
-          title.includes(query) ||
-          description.includes(query)
-        );
+      state.vod.items.push({
+        ...rawItem,
+        kind: "vod",
+        categoryId: state.vod.categoryId,
       });
 
-
-    if (
-      query &&
-      !items.length
-    ) {
-      continue;
+      added += 1;
     }
 
+    state.vod.total =
+      Number(result.total) || state.vod.items.length;
 
-    const section =
-      document.createElement(
-        "section"
-      );
+    state.vod.page = page + 1;
 
-    section.className =
-      "vod-row";
-
-
-    const heading =
-      document.createElement("h2");
-
-
-    heading.textContent =
-      category.locked &&
-      !state.parentalUnlocked
-        ? "🔒 Protected content"
-        : category.title;
-
-
-    const rail =
-      document.createElement("div");
-
-    rail.className =
-      "vod-rail";
-
-
-    /*
-    -------------------------------------------
-    Locked category
-    -------------------------------------------
-    */
-
+    // The portal controls its page size. We append every returned
+    // page and request another one as the user scrolls.
     if (
-      category.locked &&
-      !state.parentalUnlocked
+      incoming.length === 0 ||
+      added === 0 ||
+      (
+        state.vod.total > 0 &&
+        state.vod.items.length >= state.vod.total
+      )
     ) {
-
-      const lock =
-        document.createElement(
-          "button"
-        );
-
-      lock.type = "button";
-
-      lock.className =
-        "locked-vod";
-
-      lock.textContent =
-        "🔒 Unlock protected content";
-
-
-      lock.addEventListener(
-        "click",
-        async () => {
-
-          if (
-            await unlockParental()
-          ) {
-            renderVod();
-          }
-        }
-      );
-
-
-      rail.append(lock);
-
-
-    } else if (!items.length) {
-
-      const empty =
-        document.createElement("p");
-
-      empty.className =
-        "list-note";
-
-      empty.textContent =
-        "No titles currently listed in this category.";
-
-      rail.append(empty);
-
-
-    } else {
-
-      for (const item of items) {
-
-        const card =
-          document.createElement(
-            "button"
-          );
-
-        card.type = "button";
-
-        card.className =
-          "movie-card";
-
-
-        const image =
-          document.createElement(
-            "span"
-          );
-
-        image.className =
-          "movie-poster";
-
-        poster(image, item);
-
-
-        const name =
-          document.createElement(
-            "strong"
-          );
-
-        name.textContent =
-          item.title;
-
-
-        const meta =
-          document.createElement(
-            "small"
-          );
-
-
-        meta.textContent =
-          [
-            item.year,
-
-            item.rating
-              ? `★ ${item.rating}`
-              : ""
-          ]
-            .filter(Boolean)
-            .join(" · ") ||
-          "On demand";
-
-
-        card.append(
-          image,
-          name,
-          meta
-        );
-
-
-        card.addEventListener(
-          "click",
-          () => {
-
-            openVodModal({
-              ...item,
-
-              kind: "vod",
-
-              categoryId:
-                category.id
-            });
-          }
-        );
-
-
-        rail.append(card);
-      }
+      state.vod.ended = true;
     }
 
-
-    section.append(
-      heading,
-      rail
-    );
-
-
-    rows.push(section);
-  }
-
-
-  if (!rows.length) {
-
-    const empty =
-      document.createElement("p");
-
-    empty.className =
-      "list-note";
-
-    empty.textContent =
-      query
-        ? "No movies or series matched your search."
-        : "No on-demand titles are currently available.";
-
-    rows.push(empty);
-  }
-
-
-  elements.vodRows.replaceChildren(
-    ...rows
-  );
-}
-
-
-/* =====================================================
-   LOAD VOD
-===================================================== */
-
-async function loadVod() {
-
-  elements.vodRows.innerHTML =
-    '<p class="list-note">Loading on-demand library…</p>';
-
-
-  try {
-
-    const response =
-      await request(
-        "/api/vod/categories"
-      );
-
-
-    /*
-    Do NOT use Gemini's .slice(0, 16).
-    Load all available categories.
-    */
-
-    state.vod.categories =
-      Array.isArray(
-        response.categories
-      )
-        ? response.categories
-        : [];
-
-
-    /*
-    Load category page 0.
-
-    Existing server supports pages.
-    We keep initial loading reasonable
-    rather than hammering the portal
-    with every page at startup.
-    */
-
-    await Promise.all(
-      state.vod.categories.map(
-        async category => {
-
-          try {
-
-            const result =
-              await request(
-                `/api/vod/items?categoryId=${
-                  encodeURIComponent(
-                    category.id
-                  )
-                }&page=0`
-              );
-
-
-            state.vod.items.set(
-              category.id,
-              Array.isArray(
-                result.items
-              )
-                ? result.items
-                : []
-            );
-
-
-          } catch (error) {
-
-            console.warn(
-              `VOD category failed: ${category.title}`,
-              error
-            );
-
-
-            state.vod.items.set(
-              category.id,
-              []
-            );
-          }
-        }
-      )
-    );
-
-
-    state.vod.loaded = true;
-
-
-    renderVod();
-
-
+    renderVodGrid();
   } catch (error) {
-
-    elements.vodRows.innerHTML = "";
-
-
-    showNotice(
-      `VOD could not load: ${error.message}`
-    );
+    if (token === state.vod.loadToken) {
+      if (!state.vod.items.length) {
+        elements.vodGrid.innerHTML =
+          `<p class="list-note">${escapeHtml(error.message)}</p>`;
+      }
+      state.vod.ended = true;
+    }
+  } finally {
+    if (token === state.vod.loadToken) {
+      state.vod.loading = false;
+      elements.vodLoadSpinner.hidden = true;
+      elements.vodEndMessage.hidden = !state.vod.ended;
+    }
   }
 }
+
+const vodObserver = new IntersectionObserver(
+  (entries) => {
+    if (entries.some((entry) => entry.isIntersecting)) {
+      loadNextVodPage(false);
+    }
+  },
+  {
+    root: null,
+    rootMargin: "500px 0px",
+    threshold: 0.01,
+  }
+);
+
+vodObserver.observe(elements.vodLoadMore);
 
 
 /* =====================================================
@@ -2467,723 +1328,852 @@ async function loadVod() {
 ===================================================== */
 
 function openVodModal(item) {
-
   state.vod.selected = item;
 
-
-  elements.vodModalTitle.textContent =
-    item.title;
-
-
+  elements.vodModalTitle.textContent = item.title;
   elements.vodModalMeta.textContent =
-    [
-      item.year,
-
-      item.rating
-        ? `★ ${item.rating}`
-        : ""
-    ]
+    [item.year, item.rating && `â ${item.rating}`]
       .filter(Boolean)
-      .join(" · ") ||
-    "On demand";
-
+      .join(" Â· ") || "On demand";
 
   elements.vodModalDescription.textContent =
     item.description ||
     "No description is available for this title.";
 
-
-  poster(
-    elements.vodModalPoster,
-    item
-  );
-
+  setPoster(elements.vodModalPoster, item);
 
   const savedTime =
-    Number(
-      state.watchHistory[item.id]
-    ) || 0;
-
-
-  /*
-  Resume only after 30 seconds.
-  */
+    Number(state.watchHistory[item.id]) || 0;
 
   if (savedTime > 30) {
-
-    elements.vodResumeButton.hidden =
-      false;
-
-
+    elements.vodResumeButton.hidden = false;
     elements.vodResumeButton.textContent =
-      `↺ Resume from ${formatTime(savedTime)}`;
-
-
-    elements.vodResumeButton.onclick =
-      () => {
-
-        elements.vodModal.hidden =
-          true;
-
-
-        /*
-        Video player currently lives in
-        Live workspace, therefore switch
-        to player workspace when playback
-        begins.
-        */
-
-        setMode("live");
-
-
-        beginPlayback(
-          state.vod.selected,
-          savedTime
-        );
-      };
-
-
+      `âº Resume from ${formatTime(savedTime)}`;
   } else {
-
-    elements.vodResumeButton.hidden =
-      true;
-
-    elements.vodResumeButton.onclick =
-      null;
+    elements.vodResumeButton.hidden = true;
   }
 
+  elements.vodModal.hidden = false;
+}
 
-  elements.vodPlayButton.onclick =
-    () => {
+function closeVodModal() {
+  elements.vodModal.hidden = true;
+}
 
-      elements.vodModal.hidden =
-        true;
+elements.vodClose.addEventListener("click", closeVodModal);
+
+elements.vodModal.addEventListener("click", (event) => {
+  if (event.target === elements.vodModal) closeVodModal();
+});
+
+elements.vodPlayButton.addEventListener("click", () => {
+  if (!state.vod.selected) return;
+
+  const item = state.vod.selected;
+  closeVodModal();
+  playVod(item, 0);
+});
+
+elements.vodResumeButton.addEventListener("click", () => {
+  if (!state.vod.selected) return;
+
+  const item = state.vod.selected;
+  const resume =
+    Number(state.watchHistory[item.id]) || 0;
+
+  closeVodModal();
+  playVod(item, resume);
+});
 
 
-      setMode("live");
+/* =====================================================
+   VOD PLAYBACK - STAYS ON VOD PAGE
+===================================================== */
 
+function resetVodPlayer() {
+  state.vod.retryToken += 1;
+  destroyHls("vod");
 
-      beginPlayback(
-        state.vod.selected,
-        0
+  try {
+    elements.vodVideo.pause();
+  } catch {
+    // Ignore.
+  }
+
+  elements.vodVideo.removeAttribute("src");
+  elements.vodVideo.load();
+
+  elements.vodVideoLoading.hidden = true;
+  elements.vodPlayerControls.hidden = true;
+  elements.vodProgressBar.style.width = "0%";
+  elements.vodTimeDisplay.textContent = "0:00 / 0:00";
+}
+
+function attachVodHls(stream, item, resumeFrom, token) {
+  const hls = new window.Hls({
+    enableWorker: true,
+    lowLatencyMode: false,
+    backBufferLength: 60,
+    maxBufferLength: 60,
+    maxMaxBufferLength: 120,
+    manifestLoadingTimeOut: 30000,
+    levelLoadingTimeOut: 30000,
+    fragLoadingTimeOut: 30000,
+    manifestLoadingMaxRetry: 4,
+    levelLoadingMaxRetry: 4,
+    fragLoadingMaxRetry: 6,
+  });
+
+  state.vod.hls = hls;
+
+  let networkRecoveries = 0;
+  let mediaRecoveries = 0;
+  let reloads = 0;
+
+  const fail = (message) => {
+    if (token !== state.vod.retryToken) return;
+    elements.vodVideoLoading.hidden = true;
+    showNotice(message);
+  };
+
+  const reload = () => {
+    if (token !== state.vod.retryToken) return;
+
+    if (reloads >= 2) {
+      fail(
+        "Movie playback stopped because the stream could not recover. Close the player and try again."
       );
-    };
+      return;
+    }
+
+    reloads += 1;
+    const currentTime =
+      Number(elements.vodVideo.currentTime) || resumeFrom || 0;
+
+    try {
+      hls.destroy();
+    } catch {
+      // Ignore.
+    }
+
+    state.vod.hls = null;
+
+    setTimeout(() => {
+      if (
+        token === state.vod.retryToken &&
+        state.vod.selected?.id === item.id
+      ) {
+        playVod(item, currentTime, true);
+      }
+    }, 1200);
+  };
+
+  hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+    if (token !== state.vod.retryToken) return;
+
+    elements.vodVideoLoading.hidden = true;
+    elements.vodPlayerControls.hidden = false;
+
+    if (
+      resumeFrom > 0 &&
+      Number.isFinite(elements.vodVideo.duration) &&
+      resumeFrom < elements.vodVideo.duration - 5
+    ) {
+      elements.vodVideo.currentTime = resumeFrom;
+    }
+
+    elements.vodVideo.play().catch(() => {});
+  });
+
+  hls.on(window.Hls.Events.ERROR, (_event, data) => {
+    if (token !== state.vod.retryToken || !data.fatal) return;
+
+    if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR) {
+      if (networkRecoveries < 5) {
+        networkRecoveries += 1;
+
+        setTimeout(() => {
+          try {
+            hls.startLoad(-1);
+          } catch {
+            reload();
+          }
+        }, Math.min(networkRecoveries * 1000, 5000));
+
+        return;
+      }
+
+      reload();
+      return;
+    }
+
+    if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR) {
+      if (mediaRecoveries === 0) {
+        mediaRecoveries += 1;
+
+        try {
+          hls.recoverMediaError();
+          return;
+        } catch {
+          reload();
+          return;
+        }
+      }
+
+      if (mediaRecoveries === 1) {
+        mediaRecoveries += 1;
+
+        try {
+          hls.swapAudioCodec();
+          hls.recoverMediaError();
+          return;
+        } catch {
+          reload();
+          return;
+        }
+      }
+
+      reload();
+      return;
+    }
+
+    reload();
+  });
+
+  hls.loadSource(stream);
+  hls.attachMedia(elements.vodVideo);
+}
+
+async function playVod(item, resumeFrom = 0, recovery = false) {
+  if (!item) return;
+
+  const category = vodCategoryById(item.categoryId);
+
+  if (category?.locked && !state.parentalUnlocked) {
+    requestParentalUnlock(() => playVod(item, resumeFrom, recovery));
+    return;
+  }
+
+  if (!recovery) {
+    resetVodPlayer();
+  } else {
+    destroyHls("vod");
+    try {
+      elements.vodVideo.pause();
+    } catch {
+      // Ignore.
+    }
+    elements.vodVideo.removeAttribute("src");
+    elements.vodVideo.load();
+  }
+
+  state.vod.selected = item;
+
+  const token = ++state.vod.retryToken;
+
+  elements.vodPlayerSection.hidden = false;
+  elements.vodVideoLoading.hidden = false;
+  elements.vodPlayerControls.hidden = true;
+  elements.vodControlTitle.textContent = item.title;
+
+  showNotice("");
+
+  elements.vodPlayerSection.scrollIntoView({
+    behavior: recovery ? "auto" : "smooth",
+    block: "start",
+  });
+
+  try {
+    const payload = await request("/api/vod/play", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        categoryId: item.categoryId,
+        itemId: item.id,
+      }),
+    });
+
+    if (
+      token !== state.vod.retryToken ||
+      state.vod.selected?.id !== item.id
+    ) {
+      return;
+    }
+
+    if (window.Hls?.isSupported()) {
+      attachVodHls(payload.stream, item, resumeFrom, token);
+      return;
+    }
+
+    if (
+      elements.vodVideo.canPlayType("application/vnd.apple.mpegurl") ||
+      /\.(mp4|mkv|avi|mov)(?:\?|$)/i.test(payload.stream)
+    ) {
+      elements.vodVideo.src = payload.stream;
+
+      elements.vodVideo.addEventListener(
+        "loadedmetadata",
+        () => {
+          if (token !== state.vod.retryToken) return;
+
+          if (
+            resumeFrom > 0 &&
+            Number.isFinite(elements.vodVideo.duration) &&
+            resumeFrom < elements.vodVideo.duration - 5
+          ) {
+            elements.vodVideo.currentTime = resumeFrom;
+          }
+
+          elements.vodVideoLoading.hidden = true;
+          elements.vodPlayerControls.hidden = false;
+          elements.vodVideo.play().catch(() => {});
+        },
+        { once: true }
+      );
+
+      return;
+    }
+
+    throw new Error("This device cannot play this movie stream.");
+  } catch (error) {
+    if (token === state.vod.retryToken) {
+      elements.vodVideoLoading.hidden = true;
+      showNotice(`Movie could not play: ${error.message}`);
+    }
+  }
+}
+
+elements.closeVodPlayerButton.addEventListener("click", () => {
+  const item = state.vod.selected;
+
+  if (item && elements.vodVideo.currentTime > 0) {
+    state.watchHistory[item.id] = elements.vodVideo.currentTime;
+    saveWatchHistory();
+  }
+
+  resetVodPlayer();
+  elements.vodPlayerSection.hidden = true;
+});
+
+let vodControlTimeout;
+
+function revealVodControls() {
+  if (elements.vodPlayerControls.hidden) return;
+
+  elements.vodPlayerControls.classList.add("active");
+  clearTimeout(vodControlTimeout);
+
+  vodControlTimeout = setTimeout(() => {
+    if (!elements.vodVideo.paused) {
+      elements.vodPlayerControls.classList.remove("active");
+    }
+  }, 3000);
+}
+
+elements.vodPlayerContainer.addEventListener("mousemove", revealVodControls);
+elements.vodPlayerContainer.addEventListener("click", revealVodControls);
+
+elements.vodPlayPauseBtn.addEventListener("click", () => {
+  if (elements.vodVideo.paused) {
+    elements.vodVideo.play().catch(() => {});
+  } else {
+    elements.vodVideo.pause();
+  }
+});
+
+elements.vodVideo.addEventListener("play", () => {
+  elements.vodPlayPauseBtn.textContent = "â¸";
+});
+
+elements.vodVideo.addEventListener("pause", () => {
+  elements.vodPlayPauseBtn.textContent = "â¶";
+  elements.vodPlayerControls.classList.add("active");
+});
+
+elements.vodMuteBtn.addEventListener("click", () => {
+  elements.vodVideo.muted = !elements.vodVideo.muted;
+  elements.vodMuteBtn.textContent =
+    elements.vodVideo.muted ? "ð" : "ð";
+  elements.vodVolumeSlider.value =
+    elements.vodVideo.muted
+      ? "0"
+      : String(elements.vodVideo.volume);
+});
+
+elements.vodVolumeSlider.addEventListener("input", (event) => {
+  const volume = Number(event.target.value);
+  elements.vodVideo.volume = volume;
+  elements.vodVideo.muted = volume === 0;
+  elements.vodMuteBtn.textContent =
+    volume === 0 ? "ð" : "ð";
+});
+
+elements.vodVideo.addEventListener("timeupdate", () => {
+  const current =
+    Number(elements.vodVideo.currentTime) || 0;
+  const duration =
+    Number(elements.vodVideo.duration) || 0;
+
+  if (duration > 0 && Number.isFinite(duration)) {
+    const percent =
+      Math.min(100, Math.max(0, current / duration * 100));
+
+    elements.vodProgressBar.style.width =
+      `${percent}%`;
+
+    elements.vodTimeDisplay.textContent =
+      `${formatTime(current)} / ${formatTime(duration)}`;
+  } else {
+    elements.vodTimeDisplay.textContent =
+      formatTime(current);
+  }
+
+  const item = state.vod.selected;
+
+  if (item && current > 0) {
+    const rounded = Math.floor(current);
+
+    if (
+      !state.vod._lastSavedSecond ||
+      rounded - state.vod._lastSavedSecond >= 5
+    ) {
+      state.vod._lastSavedSecond = rounded;
+      state.watchHistory[item.id] = current;
+      saveWatchHistory();
+    }
+  }
+});
+
+elements.vodVideo.addEventListener("ended", () => {
+  const item = state.vod.selected;
+  if (!item) return;
+
+  delete state.watchHistory[item.id];
+  saveWatchHistory();
+});
+
+elements.vodProgressContainer.addEventListener("click", (event) => {
+  const duration = elements.vodVideo.duration;
+
+  if (!Number.isFinite(duration) || duration <= 0) return;
+
+  const rect =
+    elements.vodProgressContainer.getBoundingClientRect();
+
+  const ratio =
+    Math.min(
+      1,
+      Math.max(
+        0,
+        (event.clientX - rect.left) / rect.width
+      )
+    );
+
+  elements.vodVideo.currentTime =
+    ratio * duration;
+});
+
+elements.vodFullscreenBtn.addEventListener("click", () => {
+  toggleFullscreen(elements.vodPlayerContainer);
+});
 
 
-  elements.vodModal.hidden =
-    false;
+/* =====================================================
+   FULLSCREEN
+===================================================== */
+
+async function toggleFullscreen(container) {
+  try {
+    if (!document.fullscreenElement) {
+      await container.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch {
+    // Fullscreen may be blocked by the browser.
+  }
 }
 
 
 /* =====================================================
-   SETUP SUBMIT
+   SEARCH / EDIT
 ===================================================== */
 
-elements.setupForm.addEventListener(
-  "submit",
-  async event => {
-
-    event.preventDefault();
-
-
-    const serviceId =
-      elements.serviceId.value;
-
-
-    const mac =
-      elements.mac.value
-        .trim()
-        .toUpperCase();
-
-
-    const parentalPin =
-      elements.parentalPin.value
-        .trim();
-
-
-    if (!serviceId) {
-
-      elements.setupError.textContent =
-        "Choose your NetPlus service.";
-
-      elements.setupError.hidden =
-        false;
-
-      return;
-    }
-
-
-    if (
-      !/^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/
-        .test(mac)
-    ) {
-
-      elements.setupError.textContent =
-        "Enter a valid MAC address such as 00:1A:79:12:34:56.";
-
-      elements.setupError.hidden =
-        false;
-
-      return;
-    }
-
-
-    if (
-      !/^\d{4}$/.test(
-        parentalPin
-      )
-    ) {
-
-      elements.setupError.textContent =
-        "Set a 4-digit parental PIN.";
-
-      elements.setupError.hidden =
-        false;
-
-      return;
-    }
-
-
-    elements.connectButton.disabled =
-      true;
-
-
-    elements.connectButton.textContent =
-      "Saving…";
-
-
-    elements.setupError.hidden =
-      true;
-
-
-    try {
-
-      await request(
-        "/api/config",
-        {
-          method: "POST",
-
-          headers: {
-            "content-type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              serviceId,
-              mac,
-              parentalPin
-            })
-        }
-      );
-
-
-      /*
-      Remember only service ID and MAC
-      locally so the unchanged server API
-      can receive them again when changing
-      the parental PIN.
-
-      The PIN itself is NOT stored here.
-      */
-
-      localStorage.setItem(
-        "netplusServiceId",
-        serviceId
-      );
-
-
-      localStorage.setItem(
-        "netplusMac",
-        mac
-      );
-
-
-      elements.parentalPin.value =
-        "";
-
-
-      await loadCatalog();
-
-
-    } catch (error) {
-
-      elements.setupError.textContent =
-        error.message;
-
-
-      elements.setupError.hidden =
-        false;
-
-
-    } finally {
-
-      elements.connectButton.disabled =
-        false;
-
-
-      elements.connectButton.textContent =
-        "Save & Connect";
-    }
-  }
-);
-
-
-/* =====================================================
-   SEARCH
-===================================================== */
-
-elements.search.addEventListener(
-  "input",
-  () => {
-
-    state.query =
-      elements.search.value;
-
-    renderChannels();
-  }
-);
-
-
-elements.vodSearch.addEventListener(
-  "input",
-  () => {
-
-    state.vod.query =
-      elements.vodSearch.value;
-
-    renderVod();
-  }
-);
-
-
-/* =====================================================
-   VOD CLOSE
-===================================================== */
-
-elements.vodClose.addEventListener(
-  "click",
-  () => {
-
-    elements.vodModal.hidden =
-      true;
-  }
-);
-
-
-elements.vodModal.addEventListener(
-  "click",
-  event => {
-
-    if (
-      event.target ===
-      elements.vodModal
-    ) {
-      elements.vodModal.hidden =
-        true;
-    }
-  }
-);
+elements.search.addEventListener("input", () => {
+  state.query = elements.search.value;
+  renderChannels();
+});
+
+elements.vodSearch.addEventListener("input", () => {
+  state.vod.query = elements.vodSearch.value;
+  renderVodGrid();
+});
+
+elements.editGroupsButton.addEventListener("click", () => {
+  state.editingGroups = !state.editingGroups;
+
+  elements.editGroupsButton.classList.toggle(
+    "active",
+    state.editingGroups
+  );
+
+  elements.editGroupsButton.textContent =
+    state.editingGroups ? "Done" : "ð Edit";
+
+  renderCategories();
+});
+
+elements.editChannelsButton.addEventListener("click", () => {
+  state.editingChannels = !state.editingChannels;
+
+  elements.editChannelsButton.classList.toggle(
+    "active",
+    state.editingChannels
+  );
+
+  elements.editChannelsButton.textContent =
+    state.editingChannels ? "Done" : "ð Edit";
+
+  renderChannels();
+});
 
 
 /* =====================================================
    MODE BUTTONS
 ===================================================== */
 
-document
-  .querySelectorAll(".mode-button")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        setMode(
-          button.dataset.mode
-        );
-      }
-    );
+document.querySelectorAll(".mode-button").forEach((button) => {
+  button.addEventListener("click", () => {
+    setMode(button.dataset.mode);
   });
+});
 
 
 /* =====================================================
-   EDIT GROUPS
+   SETTINGS
 ===================================================== */
 
-elements.editGroupsButton.addEventListener(
-  "click",
-  () => {
+elements.settingsButton.addEventListener("click", () => {
+  elements.settingsModal.hidden = false;
+});
 
-    state.editingGroups =
-      !state.editingGroups;
+elements.closeSettingsButton.addEventListener("click", () => {
+  elements.settingsModal.hidden = true;
+  elements.pinNotice.hidden = true;
+  elements.newParentalPin.value = "";
+});
 
-
-    elements.editGroupsButton
-      .classList.toggle(
-        "active",
-        state.editingGroups
-      );
-
-
-    elements.editGroupsButton.textContent =
-      state.editingGroups
-        ? "Done"
-        : "👁 Edit";
-
-
-    renderCategories();
+elements.settingsModal.addEventListener("click", (event) => {
+  if (event.target === elements.settingsModal) {
+    elements.settingsModal.hidden = true;
   }
-);
+});
 
+elements.themeSelect.addEventListener("change", (event) => {
+  state.theme = event.target.value;
+  localStorage.setItem("theme", state.theme);
+  applyTheme();
+});
 
-/* =====================================================
-   EDIT CHANNELS
-===================================================== */
+elements.updatePinButton.addEventListener("click", async () => {
+  const newPin =
+    elements.newParentalPin.value.trim();
 
-elements.editChannelsButton.addEventListener(
-  "click",
-  () => {
-
-    state.editingChannels =
-      !state.editingChannels;
-
-
-    elements.editChannelsButton
-      .classList.toggle(
-        "active",
-        state.editingChannels
-      );
-
-
-    elements.editChannelsButton.textContent =
-      state.editingChannels
-        ? "Done"
-        : "👁 Edit";
-
-
-    renderChannels();
+  if (!/^\d{4}$/.test(newPin)) {
+    elements.pinNotice.textContent =
+      "PIN must be exactly 4 digits.";
+    elements.pinNotice.style.color = "#ff9292";
+    elements.pinNotice.hidden = false;
+    return;
   }
-);
 
+  elements.updatePinButton.disabled = true;
+  elements.updatePinButton.textContent = "Updatingâ¦";
 
-/* =====================================================
-   SETTINGS OPEN / CLOSE
-===================================================== */
-
-elements.settingsButton.addEventListener(
-  "click",
-  () => {
-
-    elements.settingsModal.hidden =
-      false;
-  }
-);
-
-
-elements.closeSettingsButton.addEventListener(
-  "click",
-  () => {
-
-    elements.settingsModal.hidden =
-      true;
-
-
-    elements.pinNotice.hidden =
-      true;
-
-
-    elements.newParentalPin.value =
-      "";
-  }
-);
-
-
-elements.settingsModal.addEventListener(
-  "click",
-  event => {
-
-    if (
-      event.target ===
-      elements.settingsModal
-    ) {
-
-      elements.settingsModal.hidden =
-        true;
-    }
-  }
-);
-
-
-/* =====================================================
-   THEME SETTING
-===================================================== */
-
-elements.themeSelect.addEventListener(
-  "change",
-  event => {
-
-    state.theme =
-      event.target.value;
-
-
-    localStorage.setItem(
-      "theme",
-      state.theme
-    );
-
-
-    applyTheme();
-  }
-);
-
-
-/* =====================================================
-   CHANGE PARENTAL PIN
-===================================================== */
-
-elements.updatePinButton.addEventListener(
-  "click",
-  async () => {
-
-    const newPin =
-      elements.newParentalPin.value
-        .trim();
-
-
-    if (!/^\d{4}$/.test(newPin)) {
-
-      elements.pinNotice.textContent =
-        "PIN must be exactly 4 digits.";
-
-
-      elements.pinNotice.style.color =
-        "#ff9292";
-
-
-      elements.pinNotice.hidden =
-        false;
-
-
-      return;
-    }
-
+  try {
+    /*
+      Current server.js requires serviceId + MAC when /api/config
+      is saved. We obtain them from the setup fields when available.
+      If the backend is later given a dedicated PIN endpoint, this
+      frontend can be switched to it without changing the UI.
+    */
+    const config = await request("/api/config");
 
     const serviceId =
-      localStorage.getItem(
-        "netplusServiceId"
-      );
-
+      elements.serviceId.value ||
+      config.serviceId ||
+      localStorage.getItem("netplusServiceId") ||
+      "";
 
     const mac =
-      localStorage.getItem(
-        "netplusMac"
-      );
-
-
-    /*
-    Existing server.js expects serviceId,
-    MAC and PIN together.
-
-    If this installation predates v1.1.0,
-    localStorage may not yet contain the
-    service/MAC. In that case we cannot
-    safely update without changing server.
-    */
+      elements.mac.value ||
+      localStorage.getItem("netplusMac") ||
+      "";
 
     if (!serviceId || !mac) {
+      throw new Error(
+        "Reconfigure the portal once before changing the PIN."
+      );
+    }
 
-      elements.pinNotice.textContent =
-        "To change the PIN on this existing installation, reset the portal once and reconnect. Your service and MAC will then be remembered for future PIN changes.";
+    await request("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        serviceId,
+        mac,
+        parentalPin: newPin,
+      }),
+    });
+
+    state.parentalUnlocked = false;
+
+    elements.pinNotice.textContent =
+      "PIN updated successfully.";
+    elements.pinNotice.style.color = "#35dbc5";
+    elements.pinNotice.hidden = false;
+    elements.newParentalPin.value = "";
+  } catch (error) {
+    elements.pinNotice.textContent =
+      error.message || "Failed to update PIN.";
+    elements.pinNotice.style.color = "#ff9292";
+    elements.pinNotice.hidden = false;
+  } finally {
+    elements.updatePinButton.disabled = false;
+    elements.updatePinButton.textContent = "Update PIN";
+  }
+});
+
+elements.resetPortalButton.addEventListener("click", () => {
+  if (
+    !window.confirm(
+      "Return to setup so you can change the service or MAC address?"
+    )
+  ) {
+    return;
+  }
+
+  elements.settingsModal.hidden = true;
+
+  // Do not delete favorites/history just because the user wants
+  // to reconfigure the portal.
+  elements.serviceId.value =
+    localStorage.getItem("netplusServiceId") || "";
+
+  elements.mac.value =
+    localStorage.getItem("netplusMac") || `${MAC_PREFIX}:`;
+
+  elements.parentalPin.value = "";
+
+  showSetup();
+});
 
 
-      elements.pinNotice.style.color =
-        "#ffb65c";
+/* =====================================================
+   SETUP SUBMIT
+===================================================== */
+
+elements.setupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const serviceId =
+    elements.serviceId.value.trim();
+
+  const mac =
+    formatMacValue(elements.mac.value);
+
+  const parentalPin =
+    elements.parentalPin.value.trim();
+
+  if (!serviceId) {
+    elements.setupError.textContent =
+      "Choose a NetPlus service.";
+    elements.setupError.hidden = false;
+    return;
+  }
+
+  if (!/^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/.test(mac)) {
+    elements.setupError.textContent =
+      "Enter a complete MAC address, for example 00:1A:79:12:34:56.";
+    elements.setupError.hidden = false;
+    elements.mac.focus();
+    return;
+  }
+
+  if (!/^\d{4}$/.test(parentalPin)) {
+    elements.setupError.textContent =
+      "Set a 4-digit parental PIN.";
+    elements.setupError.hidden = false;
+    elements.parentalPin.focus();
+    return;
+  }
+
+  elements.mac.value = mac;
+  elements.setupError.hidden = true;
+  elements.connectButton.disabled = true;
+  elements.connectButton.textContent = "Savingâ¦";
+
+  try {
+    await request("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        serviceId,
+        mac,
+        parentalPin,
+      }),
+    });
+
+    localStorage.setItem(
+      "netplusServiceId",
+      serviceId
+    );
+
+    localStorage.setItem(
+      "netplusMac",
+      mac
+    );
+
+    state.parentalUnlocked = false;
+    elements.parentalPin.value = "";
+
+    await loadCatalog();
+  } catch (error) {
+    elements.setupError.textContent = error.message;
+    elements.setupError.hidden = false;
+  } finally {
+    elements.connectButton.disabled = false;
+    elements.connectButton.textContent =
+      "Save & Connect";
+  }
+});
 
 
-      elements.pinNotice.hidden =
-        false;
+/* =====================================================
+   KEYBOARD SHORTCUTS
+===================================================== */
 
+document.addEventListener("keydown", (event) => {
+  const activeTag =
+    document.activeElement?.tagName;
 
+  if (
+    ["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)
+  ) {
+    return;
+  }
+
+  if (event.key === "Escape") {
+    if (!elements.pinModal.hidden) {
+      closePinModal(true);
       return;
     }
 
+    if (!elements.vodModal.hidden) {
+      closeVodModal();
+      return;
+    }
 
-    elements.updatePinButton.disabled =
-      true;
+    if (!elements.settingsModal.hidden) {
+      elements.settingsModal.hidden = true;
+      return;
+    }
+  }
 
+  const vodPlaying =
+    !elements.vodPlayerSection.hidden &&
+    !!state.vod.selected;
 
-    try {
+  if (vodPlaying) {
+    switch (event.key.toLowerCase()) {
+      case " ":
+        event.preventDefault();
+        elements.vodVideo.paused
+          ? elements.vodVideo.play().catch(() => {})
+          : elements.vodVideo.pause();
+        return;
 
-      await request(
-        "/api/config",
-        {
-          method: "POST",
+      case "f":
+        event.preventDefault();
+        toggleFullscreen(elements.vodPlayerContainer);
+        return;
 
-          headers: {
-            "content-type":
-              "application/json"
-          },
+      case "m":
+        event.preventDefault();
+        elements.vodMuteBtn.click();
+        return;
 
-          body:
-            JSON.stringify({
-              serviceId,
-              mac,
-              parentalPin:
-                newPin
-            })
+      case "arrowleft":
+        event.preventDefault();
+        elements.vodVideo.currentTime =
+          Math.max(0, elements.vodVideo.currentTime - 10);
+        return;
+
+      case "arrowright":
+        event.preventDefault();
+        if (Number.isFinite(elements.vodVideo.duration)) {
+          elements.vodVideo.currentTime =
+            Math.min(
+              elements.vodVideo.duration,
+              elements.vodVideo.currentTime + 10
+            );
         }
-      );
-
-
-      state.parentalUnlocked =
-        false;
-
-
-      elements.pinNotice.textContent =
-        "Parental PIN updated successfully.";
-
-
-      elements.pinNotice.style.color =
-        "#35dbc5";
-
-
-      elements.pinNotice.hidden =
-        false;
-
-
-      elements.newParentalPin.value =
-        "";
-
-
-    } catch (error) {
-
-      elements.pinNotice.textContent =
-        error.message ||
-        "Failed to update PIN.";
-
-
-      elements.pinNotice.style.color =
-        "#ff9292";
-
-
-      elements.pinNotice.hidden =
-        false;
-
-
-    } finally {
-
-      elements.updatePinButton.disabled =
-        false;
+        return;
     }
   }
-);
 
-
-/* =====================================================
-   RESET PORTAL
-===================================================== */
-
-elements.resetPortalButton.addEventListener(
-  "click",
-  () => {
-
-    const confirmed =
-      window.confirm(
-        "Reset the local NetPlus player configuration and return to setup?"
-      );
-
-
-    if (!confirmed) {
-      return;
-    }
-
-
-    /*
-    Do not wipe every preference.
-
-    Keep:
-    - Favorites
-    - hidden channels/groups
-    - watch history
-    - theme
-
-    Remove only locally remembered
-    portal helper values.
-    */
-
-    localStorage.removeItem(
-      "netplusServiceId"
-    );
-
-
-    localStorage.removeItem(
-      "netplusMac"
-    );
-
-
-    state.catalog = null;
-
-    state.selected = null;
-
-    state.parentalUnlocked =
-      false;
-
-
-    resetPlayer();
-
-
-    elements.settingsModal.hidden =
-      true;
-
-
-    /*
-    NOTE:
-    Existing server.js does not expose a
-    DELETE config endpoint.
-
-    Therefore this button returns to the
-    setup UI so a new configuration can
-    overwrite the saved config.
-    */
-
-    showSetup();
+  if (!state.selected || state.selected.kind !== "live") {
+    return;
   }
-);
 
+  switch (event.key.toLowerCase()) {
+    case " ":
+      event.preventDefault();
+      elements.video.paused
+        ? elements.video.play().catch(() => {})
+        : elements.video.pause();
+      break;
 
-/* =====================================================
-   ESCAPE KEY
-===================================================== */
+    case "f":
+      event.preventDefault();
+      toggleFullscreen(elements.playerContainer);
+      break;
 
-document.addEventListener(
-  "keydown",
-  event => {
+    case "m":
+      event.preventDefault();
+      elements.muteBtn.click();
+      break;
 
-    if (event.key !== "Escape") {
-      return;
-    }
+    case "arrowup":
+    case "arrowdown": {
+      event.preventDefault();
 
+      const channels = filteredChannels();
+      const index =
+        channels.findIndex(
+          (channel) => channel.id === state.selected.id
+        );
 
-    if (
-      !elements.vodModal.hidden
-    ) {
+      if (index < 0 || !channels.length) return;
 
-      elements.vodModal.hidden =
-        true;
+      let nextIndex =
+        event.key === "ArrowUp"
+          ? index - 1
+          : index + 1;
 
-      return;
-    }
+      if (nextIndex < 0) {
+        nextIndex = channels.length - 1;
+      }
 
+      if (nextIndex >= channels.length) {
+        nextIndex = 0;
+      }
 
-    if (
-      !elements.settingsModal.hidden
-    ) {
-
-      elements.settingsModal.hidden =
-        true;
+      playLive(channels[nextIndex]);
+      break;
     }
   }
-);
+});
 
 
 /* =====================================================
@@ -3191,38 +2181,29 @@ document.addEventListener(
 ===================================================== */
 
 async function boot() {
+  applyTheme();
+
+  elements.mac.value =
+    localStorage.getItem("netplusMac") ||
+    elements.mac.value ||
+    `${MAC_PREFIX}:`;
+
+  elements.serviceId.value =
+    localStorage.getItem("netplusServiceId") || "";
 
   try {
-
-    const result =
-      await request(
-        "/api/config"
-      );
-
+    const result = await request("/api/config");
 
     if (result.configured) {
-
       await loadCatalog();
-
     } else {
-
       showSetup();
     }
-
-
   } catch (error) {
-
     showSetup();
-
-
-    elements.setupError.textContent =
-      error.message;
-
-
-    elements.setupError.hidden =
-      false;
+    elements.setupError.textContent = error.message;
+    elements.setupError.hidden = false;
   }
 }
-
 
 boot();
