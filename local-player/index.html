@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Netplus IPTV Player</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">N</span>
+        <span><strong>Netplus IPTV Player</strong><small>Live TV for your home</small></span>
+      </div>
+      <div class="status" id="status"><i></i><span>Starting</span></div>
+    </header>
+
+    <nav class="modebar" id="modebar" hidden>
+      <button class="mode-button active" type="button" data-mode="live">Live TV</button>
+      <button class="mode-button" type="button" data-mode="vod">Movies & VOD</button>
+    </nav>
+
+    <main class="workspace" id="workspace" hidden>
+      <aside class="panel categories-panel">
+        <div class="heading"><p>Browse</p><strong id="groupCount">0 groups</strong></div>
+        <nav id="categories" class="scroll-list"></nav>
+      </aside>
+
+      <section class="panel channels-panel">
+        <div class="heading channels-heading">
+          <div><p>Live TV</p><strong id="channelCount">0 channels</strong></div>
+          <input id="search" type="search" placeholder="Search" aria-label="Search channels" />
+        </div>
+        <div id="channels" class="scroll-list channel-list"></div>
+      </section>
+
+      <section class="player-column">
+        <div class="player-card">
+          <div class="video-stage">
+            <video id="video" controls playsinline></video>
+            <div class="placeholder" id="placeholder">
+              <span>▶</span><strong>Select a channel to test</strong>
+              <p>Video traffic stays on this laptop and uses your internet connection.</p>
+            </div>
+            <div class="loading" id="videoLoading" hidden><b></b><p>Preparing live stream…</p></div>
+          </div>
+          <div class="now-playing">
+            <div><p>Now playing</p><h1 id="nowPlaying">Nothing selected</h1></div>
+            <button id="settingsButton" type="button">Portal settings</button>
+          </div>
+        </div>
+        <div id="notice" class="notice" hidden></div>
+        <div class="local-note">
+          <span>LOCAL</span>
+          <p>Keep the black command window open while watching. Closing it stops the player.</p>
+        </div>
+      </section>
+    </main>
+
+    <main class="vod-workspace" id="vodWorkspace" hidden>
+      <section class="vod-hero">
+        <div><p class="eyebrow">Movies & VOD</p><h1>Watch what you want</h1><p>Browse your service’s on-demand library.</p></div>
+        <input id="vodSearch" type="search" placeholder="Search movies" aria-label="Search movies" />
+      </section>
+      <section id="vodRows" class="vod-rows"></section>
+    </main>
+
+    <section class="setup" id="setup" hidden>
+      <form id="setupForm" class="setup-card">
+          <span class="setup-logo">N</span>
+        <p class="eyebrow">First-time setup</p>
+        <h1>Connect your service</h1>
+        <p class="setup-copy">Select the service where your MAC address is activated.</p>
+        <label>Netplus service
+          <select id="serviceId" name="serviceId" required>
+            <option value="edge">Netplus Edge</option>
+            <option value="classic">Netplus Classic</option>
+          </select>
+        </label>
+        <label>Activated MAC address<input id="mac" name="mac" type="text" placeholder="00:1A:79:12:34:56" maxlength="17" required /></label>
+        <label>Set parental PIN<input id="parentalPin" name="parentalPin" type="password" inputmode="numeric" pattern="[0-9]{4}" placeholder="Choose 4 digits" maxlength="4" required /></label>
+        <button id="connectButton" type="submit">Save & connect</button>
+        <p class="form-error" id="setupError" hidden></p>
+      </form>
+    </section>
+
+    <section class="details-modal" id="vodModal" hidden>
+      <div class="details-card">
+        <button class="modal-close" id="vodClose" type="button" aria-label="Close">×</button>
+        <div class="movie-poster large" id="vodModalPoster">N</div>
+        <div class="movie-details"><p class="eyebrow">On demand</p><h1 id="vodModalTitle">Movie</h1><p class="movie-meta" id="vodModalMeta"></p><p id="vodModalDescription">Choose a movie to see details.</p><button id="vodPlayButton" type="button">▶ Play movie</button></div>
+      </div>
+    </section>
+
+    <script src="/hls.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
