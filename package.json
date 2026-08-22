@@ -1,7 +1,9 @@
 {
   "name": "ranvexsi-iptv-test",
-  "version": "0.1.0",
+  "version": "1.4.0",
   "private": true,
+  "description": "NetPlus IPTV Player for Live TV, Movies and Series",
+  "author": "NetPlus",
   "engines": {
     "node": ">=22.13.0"
   },
