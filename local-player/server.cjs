@@ -1,7 +1,7 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.2.0
+ VERSION: 1.3.0
  File: server.cjs
 =========================================================
 */
@@ -27,21 +27,14 @@ const MAG_USER_AGENT =
   "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG250 stbapp ver: 4 rev: 1812 Mobile Safari/533.3";
 const X_USER_AGENT = "Model: MAG250; Link: WiFi";
 
-const ADULT_TERMS = /\b(adult|xxx|18\+|porn|erotic|sex)\b/i;
-
-const CATALOG_TTL_MS = 2 * 60_000;
-const VOD_TTL_MS = 5 * 60_000;
-const RELAY_TTL_MS = 12 * 60 * 60_000;
-const POSTER_TTL_MS = 12 * 60 * 60_000;
-const MAX_VOD_PAGE = 500;
-
 let catalogCache = null;
 let catalogPromise = null;
 
 const vodCache = new Map();
-const vodItemCommands = new Map();
+const seriesCache = new Map();
 const relayTargets = new Map();
-const posterTargets = new Map();
+
+const ADULT_TERMS = /\b(adult|xxx|18\+|porn|erotic|sex)\b/i;
 
 class PlayerError extends Error {
   constructor(message, status = 502) {
@@ -52,7 +45,6 @@ class PlayerError extends Error {
 
 function normalizePortalUrl(input) {
   let url;
-
   try {
     url = new URL(input);
   } catch {
@@ -79,7 +71,6 @@ function normalizePortalUrl(input) {
 
   url.search = "";
   url.hash = "";
-
   return url.toString();
 }
 
@@ -123,23 +114,6 @@ function isAdult(title) {
   return ADULT_TERMS.test(String(title || ""));
 }
 
-function clearRuntimeCaches() {
-  catalogCache = null;
-  catalogPromise = null;
-  vodCache.clear();
-  vodItemCommands.clear();
-  relayTargets.clear();
-  posterTargets.clear();
-}
-
-function writeStoredConfig(stored) {
-  fs.writeFileSync(
-    CONFIG_PATH,
-    `${JSON.stringify(stored, null, 2)}\n`,
-    "utf8",
-  );
-}
-
 function saveConfig(serviceId, macInput, parentalPin) {
   const service = SERVICES[serviceId];
 
@@ -147,75 +121,41 @@ function saveConfig(serviceId, macInput, parentalPin) {
     throw new PlayerError("Choose Netplus Edge or Netplus Classic.", 400);
   }
 
-  normalizePortalUrl(service.portalUrl);
-
   const mac = String(macInput || "").trim().toUpperCase();
 
   if (!/^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/.test(mac)) {
-    throw new PlayerError("MAC must look like 00:1A:79:12:34:56.", 400);
+    throw new PlayerError("Enter all 12 MAC digits.", 400);
   }
 
   const existing = readStoredConfig();
   const pin = String(parentalPin || "").trim();
 
   const parentalPinHash =
-    /^\d{4}$/.test(pin)
-      ? pinHash(pin)
-      : existing.parentalPinHash;
+    /^\d{4}$/.test(pin) ? pinHash(pin) : existing.parentalPinHash;
 
   if (!parentalPinHash) {
     throw new PlayerError(
       "Set a 4-digit parental PIN to protect restricted content.",
-      400,
+      400
     );
   }
 
-  writeStoredConfig({
-    serviceId,
-    mac,
-    parentalPinHash,
-  });
+  fs.writeFileSync(
+    CONFIG_PATH,
+    `${JSON.stringify({ serviceId, mac, parentalPinHash }, null, 2)}\n`,
+    "utf8"
+  );
 
-  clearRuntimeCaches();
-}
-
-function updateParentalPin(pinInput) {
-  const pin = String(pinInput || "").trim();
-
-  if (!/^\d{4}$/.test(pin)) {
-    throw new PlayerError("Parental PIN must be exactly 4 digits.", 400);
-  }
-
-  const existing = readStoredConfig();
-
-  if (!existing.serviceId || !existing.mac) {
-    throw new PlayerError("Complete local player setup first.", 400);
-  }
-
-  existing.parentalPinHash = pinHash(pin);
-  writeStoredConfig(existing);
-}
-
-function resetPortalConfig() {
-  try {
-    fs.rmSync(CONFIG_PATH, { force: true });
-  } catch {
-    try {
-      fs.writeFileSync(CONFIG_PATH, "{}\n", "utf8");
-    } catch {
-      throw new PlayerError("Could not reset local portal configuration.", 500);
-    }
-  }
-
-  clearRuntimeCaches();
+  catalogCache = null;
+  catalogPromise = null;
+  vodCache.clear();
+  seriesCache.clear();
+  relayTargets.clear();
 }
 
 function loadBalancerCookie(headers) {
   const setCookie = headers.get("set-cookie") || "";
-
-  return (
-    setCookie.match(/(?:^|[,;]\s*)(__cflb=[^;,\s]+)/i)?.[1] || ""
-  );
+  return setCookie.match(/(?:^|[,;]\s*)(__cflb=[^;,\s]+)/i)?.[1] || "";
 }
 
 async function portalRequest(params, session) {
@@ -262,15 +202,15 @@ async function portalRequest(params, session) {
     throw new PlayerError(`Portal returned status ${response.status}.`);
   }
 
-  const body = await response.text();
+  const text = await response.text();
 
-  if (body.trim() === "Authorization failed.") {
+  if (text.trim() === "Authorization failed.") {
     throw new PlayerError("Portal rejected this MAC address.", 401);
   }
 
   try {
     return {
-      data: JSON.parse(body),
+      data: JSON.parse(text),
       headers: response.headers,
     };
   } catch {
@@ -301,9 +241,7 @@ async function createSession() {
 
   const session = {
     token,
-    cookie: [config.baseCookie, extraCookie]
-      .filter(Boolean)
-      .join("; "),
+    cookie: [config.baseCookie, extraCookie].filter(Boolean).join("; "),
   };
 
   const profile = await portalRequest(
@@ -316,7 +254,7 @@ async function createSession() {
       auth_second_step: "1",
       not_valid_token: "0",
     },
-    session,
+    session
   );
 
   if (!profile.data?.js) {
@@ -330,20 +268,8 @@ async function rebuildCatalog() {
   const session = await createSession();
 
   const [genresResponse, channelsResponse] = await Promise.all([
-    portalRequest(
-      {
-        type: "itv",
-        action: "get_genres",
-      },
-      session,
-    ),
-    portalRequest(
-      {
-        type: "itv",
-        action: "get_all_channels",
-      },
-      session,
-    ),
+    portalRequest({ type: "itv", action: "get_genres" }, session),
+    portalRequest({ type: "itv", action: "get_all_channels" }, session),
   ]);
 
   const genres = Array.isArray(genresResponse.data?.js)
@@ -357,12 +283,7 @@ async function rebuildCatalog() {
   const commands = new Map();
 
   const channels = rawChannels
-    .filter(
-      (channel) =>
-        channel.id != null &&
-        channel.name &&
-        channel.cmd,
-    )
+    .filter((channel) => channel.id != null && channel.name && channel.cmd)
     .map((channel) => {
       const id = String(channel.id);
       commands.set(id, String(channel.cmd));
@@ -381,20 +302,16 @@ async function rebuildCatalog() {
       (a, b) =>
         (a.number ?? Number.MAX_SAFE_INTEGER) -
           (b.number ?? Number.MAX_SAFE_INTEGER) ||
-        a.name.localeCompare(b.name),
+        a.name.localeCompare(b.name)
     );
 
   catalogCache = {
     session,
     commands,
-    expiresAt: Date.now() + CATALOG_TTL_MS,
+    expiresAt: Date.now() + 2 * 60_000,
     publicCatalog: {
       categories: genres
-        .filter(
-          (genre) =>
-            genre.id != null &&
-            genre.title,
-        )
+        .filter((genre) => genre.id != null && genre.title)
         .map((genre) => ({
           id: String(genre.id),
           title: String(genre.title).trim(),
@@ -408,10 +325,7 @@ async function rebuildCatalog() {
 }
 
 async function activeCatalog(force = false) {
-  if (
-    !force &&
-    catalogCache?.expiresAt > Date.now()
-  ) {
+  if (!force && catalogCache?.expiresAt > Date.now()) {
     return catalogCache;
   }
 
@@ -426,48 +340,22 @@ async function activeCatalog(force = false) {
   return catalogPromise;
 }
 
-function extractPlayableUrl(payload) {
-  const candidates = [];
+function parsePortalStream(raw) {
+  const cleaned = String(raw || "")
+    .trim()
+    .replace(/^(?:ffmpeg|ffrt|auto)\s+/i, "");
 
-  if (typeof payload === "string") {
-    candidates.push(payload);
-  }
+  try {
+    const url = new URL(cleaned);
 
-  if (payload && typeof payload === "object") {
-    for (const key of [
-      "cmd",
-      "url",
-      "stream",
-      "link",
-      "src",
-    ]) {
-      if (typeof payload[key] === "string") {
-        candidates.push(payload[key]);
-      }
+    if (!/^https?:$/.test(url.protocol)) {
+      throw new Error("Unsupported stream");
     }
+
+    return url.toString();
+  } catch {
+    throw new PlayerError("Portal did not return a playable stream.");
   }
-
-  for (const candidate of candidates) {
-    const cleaned = String(candidate)
-      .trim()
-      .replace(/^(?:ffmpeg|ffrt|auto)\s+/i, "");
-
-    if (!cleaned) continue;
-
-    try {
-      const url = new URL(cleaned);
-
-      if (/^https?:$/.test(url.protocol)) {
-        return url.toString();
-      }
-    } catch {
-      // Try next candidate.
-    }
-  }
-
-  throw new PlayerError(
-    "Portal did not return a playable stream.",
-  );
 }
 
 async function getStreamUrl(channelId, retry = true) {
@@ -475,10 +363,7 @@ async function getStreamUrl(channelId, retry = true) {
   const command = catalog.commands.get(channelId);
 
   if (!command) {
-    throw new PlayerError(
-      "Channel is no longer available.",
-      404,
-    );
+    throw new PlayerError("Channel is no longer available.", 404);
   }
 
   try {
@@ -492,108 +377,77 @@ async function getStreamUrl(channelId, retry = true) {
         disable_ad: "0",
         download: "0",
       },
-      catalog.session,
+      catalog.session
     );
 
-    return extractPlayableUrl(response.data?.js);
+    const raw =
+      typeof response.data?.js === "string"
+        ? response.data.js
+        : response.data?.js?.cmd || "";
+
+    return parsePortalStream(raw);
   } catch (error) {
-    if (
-      retry &&
-      error instanceof PlayerError &&
-      error.status === 401
-    ) {
+    if (retry && error instanceof PlayerError && error.status === 401) {
       await activeCatalog(true);
       return getStreamUrl(channelId, false);
     }
 
-    if (error instanceof PlayerError) {
-      throw error;
-    }
-
-    throw new PlayerError(
-      "Portal did not return a playable stream.",
-    );
+    throw error;
   }
 }
 
-function normalizeHttpUrl(value, baseUrl = null) {
+function cleanPosterUrl(value) {
   const raw = String(value || "").trim();
 
-  if (!raw || raw === "0") {
-    return "";
-  }
+  if (!raw || raw === "0") return "";
 
   try {
-    const url = baseUrl
-      ? new URL(raw, baseUrl)
-      : new URL(raw);
-
-    return /^https?:$/.test(url.protocol)
-      ? url.toString()
-      : "";
+    const url = new URL(raw);
+    return /^https?:$/.test(url.protocol) ? url.toString() : "";
   } catch {
     return "";
   }
 }
 
-function createPosterTarget(url) {
-  if (!url) return "";
-
-  for (const [ticket, target] of posterTargets.entries()) {
-    if (
-      target.url === url &&
-      target.expiresAt > Date.now()
-    ) {
-      return `/poster/${ticket}`;
-    }
-  }
-
-  const ticket = randomBytes(18).toString("base64url");
-
-  posterTargets.set(ticket, {
-    url,
-    expiresAt: Date.now() + POSTER_TTL_MS,
-  });
-
-  return `/poster/${ticket}`;
+function normalizeMediaItem(row, kind = "vod") {
+  return {
+    id: String(row.id),
+    title: String(row.name || row.title || "").trim(),
+    description: String(
+      row.description || row.description_en || row.plot || ""
+    ).trim(),
+    year: String(row.year || "").trim(),
+    rating: String(
+      row.rating_imdb || row.rating || row.kinopoisk_rating || ""
+    ).trim(),
+    poster: cleanPosterUrl(
+      row.screenshot_uri ||
+        row.poster ||
+        row.cover ||
+        row.logo ||
+        row.movie_image
+    ),
+    cmd: String(row.cmd || ""),
+    kind,
+  };
 }
 
-function getPosterSource(row) {
-  return (
-    row.screenshot_uri ||
-    row.screenshot ||
-    row.poster ||
-    row.cover ||
-    row.cover_big ||
-    row.movie_image ||
-    row.logo ||
-    row.image ||
-    row.icon ||
-    ""
-  );
-}
+/* =====================================================
+   VOD / MOVIES
+===================================================== */
 
 async function getVodCategories() {
   const catalog = await activeCatalog();
 
   const response = await portalRequest(
-    {
-      type: "vod",
-      action: "get_categories",
-    },
-    catalog.session,
+    { type: "vod", action: "get_categories" },
+    catalog.session
   );
 
-  const rows = Array.isArray(response.data?.js)
-    ? response.data.js
-    : [];
+  const rows = Array.isArray(response.data?.js) ? response.data.js : [];
 
   return rows
-    .filter(
-      (row) =>
-        row.id != null &&
-        (row.title || row.name),
-    )
+    .filter((row) => row.id != null && (row.title || row.name))
     .map((row) => ({
       id: String(row.id),
       title: String(row.title || row.name).trim(),
@@ -601,24 +455,10 @@ async function getVodCategories() {
     }));
 }
 
-function vodCommandKey(categoryId, itemId) {
-  return `${String(categoryId)}:${String(itemId)}`;
-}
-
 async function getVodItems(categoryId, page = 0) {
-  const numericPage = Number(page);
-
-  const safePage = Math.max(
-    0,
-    Math.min(
-      Number.isFinite(numericPage)
-        ? Math.floor(numericPage)
-        : 0,
-      MAX_VOD_PAGE,
-    ),
-  );
-
+  const safePage = Math.max(0, Math.min(Number(page) || 0, 100));
   const key = `${categoryId}:${safePage}`;
+
   const cached = vodCache.get(key);
 
   if (cached?.expiresAt > Date.now()) {
@@ -633,208 +473,388 @@ async function getVodItems(categoryId, page = 0) {
       action: "get_ordered_list",
       category: categoryId,
       p: safePage,
+      sortby: "added",
     },
-    catalog.session,
+    catalog.session
   );
 
   const js = response.data?.js || {};
-  const rows = Array.isArray(js.data)
-    ? js.data
-    : Array.isArray(js)
-      ? js
-      : [];
+  const rows = Array.isArray(js.data) ? js.data : [];
 
+  /*
+    Do NOT require cmd here. Some Stalker portals only provide the
+    playable command in get_vod_info/get_ordered_list variations.
+    Keeping the title visible fixes categories that previously looked empty.
+  */
   const items = rows
-    .filter(
-      (row) =>
-        row.id != null &&
-        (row.name || row.title),
-    )
-    .map((row) => {
-      const id = String(row.id);
-      const cmd = String(row.cmd || "").trim();
-
-      if (cmd) {
-        vodItemCommands.set(
-          vodCommandKey(categoryId, id),
-          {
-            cmd,
-            expiresAt:
-              Date.now() + 12 * 60 * 60_000,
-          },
-        );
-      }
-
-      const posterSource = normalizeHttpUrl(
-        getPosterSource(row),
-      );
-
-      return {
-        id,
-        title: String(
-          row.name || row.title,
-        ).trim(),
-        description: String(
-          row.description ||
-            row.description_en ||
-            row.descr ||
-            row.plot ||
-            "",
-        ).trim(),
-        year: String(
-          row.year ||
-            row.release_year ||
-            "",
-        ).trim(),
-        rating: String(
-          row.rating_imdb ||
-            row.rating ||
-            row.imdb_rating ||
-            "",
-        ).trim(),
-        poster: posterSource
-          ? createPosterTarget(posterSource)
-          : "",
-      };
-    });
-
-  const totalCandidates = [
-    js.total_items,
-    js.total,
-    js.max_page_items,
-  ];
-
-  let total = items.length;
-
-  for (const candidate of totalCandidates) {
-    const number = Number(candidate);
-
-    if (Number.isFinite(number) && number >= 0) {
-      total = number;
-      break;
-    }
-  }
+    .filter((row) => row.id != null && (row.name || row.title))
+    .map((row) => normalizeMediaItem(row, "vod"));
 
   const value = {
     items,
-    total,
+    total: Number(js.total_items) || Number(js.total) || items.length,
     page: safePage,
-    hasMore:
-      items.length > 0 &&
-      (
-        total > (safePage + 1) * Math.max(items.length, 1) ||
-        items.length >= 10
-      ),
   };
 
   vodCache.set(key, {
     value,
-    expiresAt: Date.now() + VOD_TTL_MS,
+    expiresAt: Date.now() + 5 * 60_000,
   });
 
   return value;
 }
 
-async function findVodCommand(categoryId, itemId) {
-  const key = vodCommandKey(categoryId, itemId);
-  const known = vodItemCommands.get(key);
-
-  if (known?.expiresAt > Date.now()) {
-    return known.cmd;
-  }
-
-  for (let page = 0; page <= MAX_VOD_PAGE; page += 1) {
+async function findVodItem(categoryId, itemId) {
+  for (let page = 0; page <= 10; page += 1) {
     const result = await getVodItems(categoryId, page);
+    const item = result.items.find((entry) => entry.id === itemId);
 
-    const refreshed = vodItemCommands.get(key);
+    if (item) return item;
 
-    if (refreshed?.cmd) {
-      return refreshed.cmd;
-    }
-
-    if (!result.items.length) {
-      break;
-    }
-
-    if (
-      Number.isFinite(result.total) &&
-      result.total > 0 &&
-      (page + 1) * Math.max(result.items.length, 1) >= result.total
-    ) {
-      break;
+    if (!result.items.length) break;
+    if (result.total && (page + 1) * result.items.length >= result.total) {
+      /* harmless optimization for smaller catalogues */
     }
   }
 
-  throw new PlayerError(
-    "Movie is no longer available. Refresh VOD and try again.",
-    404,
-  );
+  return null;
 }
 
-async function getVodStreamUrl(
-  categoryId,
-  itemId,
-  retry = true,
-) {
-  const command = await findVodCommand(
-    categoryId,
-    itemId,
-  );
+async function resolveVodCommand(item) {
+  if (item?.cmd) return item.cmd;
 
   const catalog = await activeCatalog();
 
-  try {
-    const response = await portalRequest(
-      {
-        type: "vod",
-        action: "create_link",
-        cmd: command,
-        series: "0",
-        forced_storage: "undefined",
-        download: "0",
-      },
-      catalog.session,
-    );
+  const info = await portalRequest(
+    {
+      type: "vod",
+      action: "get_vod_info",
+      movie_id: item.id,
+    },
+    catalog.session
+  );
 
-    return extractPlayableUrl(response.data?.js);
-  } catch (error) {
-    if (
-      retry &&
-      error instanceof PlayerError &&
-      error.status === 401
-    ) {
-      await activeCatalog(true);
+  const js = info.data?.js || {};
 
-      return getVodStreamUrl(
-        categoryId,
-        itemId,
-        false,
-      );
-    }
-
-    if (error instanceof PlayerError) {
-      if (
-        error.message ===
-        "Portal did not return a playable stream."
-      ) {
-        throw new PlayerError(
-          "Portal did not return a playable movie stream.",
-        );
-      }
-
-      throw error;
-    }
-
-    throw new PlayerError(
-      "Portal did not return a playable movie stream.",
-    );
-  }
+  return String(
+    js.cmd ||
+      js.movie?.cmd ||
+      js.data?.cmd ||
+      ""
+  );
 }
 
-function createRelayTarget(
-  url,
-  lifetimeMs = RELAY_TTL_MS,
-) {
+async function getVodStreamUrl(categoryId, itemId) {
+  const item = await findVodItem(categoryId, itemId);
+
+  if (!item) {
+    throw new PlayerError(
+      "Movie is no longer available. Refresh Movies and try again.",
+      404
+    );
+  }
+
+  const catalog = await activeCatalog();
+  const command = await resolveVodCommand(item);
+
+  if (!command) {
+    throw new PlayerError("Portal did not provide a movie playback command.");
+  }
+
+  const response = await portalRequest(
+    {
+      type: "vod",
+      action: "create_link",
+      cmd: command,
+      series: "0",
+      forced_storage: "undefined",
+      disable_ad: "0",
+      download: "0",
+    },
+    catalog.session
+  );
+
+  const raw =
+    typeof response.data?.js === "string"
+      ? response.data.js
+      : response.data?.js?.cmd || "";
+
+  return parsePortalStream(raw);
+}
+
+/* =====================================================
+   SERIES SUPPORT
+   Endpoints are ready for the next UI step:
+   /api/series/categories
+   /api/series/items
+   /api/series/seasons
+   /api/series/episodes
+   /api/series/play
+===================================================== */
+
+async function getSeriesCategories() {
+  const catalog = await activeCatalog();
+
+  const response = await portalRequest(
+    { type: "series", action: "get_categories" },
+    catalog.session
+  );
+
+  const rows = Array.isArray(response.data?.js) ? response.data.js : [];
+
+  return rows
+    .filter((row) => row.id != null && (row.title || row.name))
+    .map((row) => ({
+      id: String(row.id),
+      title: String(row.title || row.name).trim(),
+      locked: isAdult(row.title || row.name),
+    }));
+}
+
+async function getSeriesItems(categoryId, page = 0) {
+  const safePage = Math.max(0, Math.min(Number(page) || 0, 100));
+  const key = `items:${categoryId}:${safePage}`;
+
+  const cached = seriesCache.get(key);
+  if (cached?.expiresAt > Date.now()) return cached.value;
+
+  const catalog = await activeCatalog();
+
+  const response = await portalRequest(
+    {
+      type: "series",
+      action: "get_ordered_list",
+      category: categoryId,
+      p: safePage,
+    },
+    catalog.session
+  );
+
+  const js = response.data?.js || {};
+  const rows = Array.isArray(js.data) ? js.data : [];
+
+  const items = rows
+    .filter((row) => row.id != null && (row.name || row.title))
+    .map((row) => normalizeMediaItem(row, "series"));
+
+  const value = {
+    items,
+    total: Number(js.total_items) || Number(js.total) || items.length,
+    page: safePage,
+  };
+
+  seriesCache.set(key, {
+    value,
+    expiresAt: Date.now() + 5 * 60_000,
+  });
+
+  return value;
+}
+
+function normalizeEpisode(raw, seasonNumber, index) {
+  const id =
+    raw.id ??
+    raw.series_id ??
+    raw.episode_id ??
+    raw.ch_id ??
+    `${seasonNumber}-${index + 1}`;
+
+  return {
+    id: String(id),
+    title: String(
+      raw.name ||
+        raw.title ||
+        raw.episode_name ||
+        `Episode ${raw.episode_num || index + 1}`
+    ).trim(),
+    episode: Number(raw.episode_num || raw.episode || index + 1),
+    season: Number(raw.season || seasonNumber || 1),
+    cmd: String(raw.cmd || raw.command || ""),
+  };
+}
+
+async function getSeriesInfo(seriesId) {
+  const key = `info:${seriesId}`;
+
+  const cached = seriesCache.get(key);
+  if (cached?.expiresAt > Date.now()) return cached.value;
+
+  const catalog = await activeCatalog();
+
+  const response = await portalRequest(
+    {
+      type: "series",
+      action: "get_ordered_list",
+      movie_id: seriesId,
+      series_id: seriesId,
+      p: 0,
+    },
+    catalog.session
+  );
+
+  let js = response.data?.js || {};
+
+  /*
+    Different Stalker builds expose series details through different
+    actions. Fall back to get_series_info when get_ordered_list does
+    not contain season/episode information.
+  */
+  const hasUsefulInfo =
+    Array.isArray(js.seasons) ||
+    Array.isArray(js.episodes) ||
+    Array.isArray(js.data?.seasons) ||
+    Array.isArray(js.data?.episodes);
+
+  if (!hasUsefulInfo) {
+    try {
+      const infoResponse = await portalRequest(
+        {
+          type: "series",
+          action: "get_series_info",
+          series_id: seriesId,
+          movie_id: seriesId,
+        },
+        catalog.session
+      );
+
+      if (infoResponse.data?.js) {
+        js = infoResponse.data.js;
+      }
+    } catch {
+      /* Keep first response and normalize whatever it contains. */
+    }
+  }
+
+  seriesCache.set(key, {
+    value: js,
+    expiresAt: Date.now() + 5 * 60_000,
+  });
+
+  return js;
+}
+
+function extractSeasons(info) {
+  const rawSeasons =
+    (Array.isArray(info?.seasons) && info.seasons) ||
+    (Array.isArray(info?.data?.seasons) && info.data.seasons) ||
+    [];
+
+  if (rawSeasons.length) {
+    return rawSeasons.map((season, index) => ({
+      id: String(season.id ?? season.season ?? index + 1),
+      number: Number(season.season ?? season.number ?? index + 1),
+      title: String(
+        season.name ||
+          season.title ||
+          `Season ${season.season ?? season.number ?? index + 1}`
+      ),
+    }));
+  }
+
+  const rawEpisodes =
+    (Array.isArray(info?.episodes) && info.episodes) ||
+    (Array.isArray(info?.data?.episodes) && info.data.episodes) ||
+    [];
+
+  const numbers = new Set();
+
+  rawEpisodes.forEach((episode) => {
+    numbers.add(Number(episode.season || 1));
+  });
+
+  return [...numbers]
+    .sort((a, b) => a - b)
+    .map((number) => ({
+      id: String(number),
+      number,
+      title: `Season ${number}`,
+    }));
+}
+
+function extractEpisodes(info, seasonNumber) {
+  const rawEpisodes =
+    (Array.isArray(info?.episodes) && info.episodes) ||
+    (Array.isArray(info?.data?.episodes) && info.data.episodes) ||
+    [];
+
+  if (rawEpisodes.length) {
+    return rawEpisodes
+      .filter(
+        (episode) =>
+          Number(episode.season || seasonNumber || 1) === Number(seasonNumber)
+      )
+      .map((episode, index) =>
+        normalizeEpisode(episode, seasonNumber, index)
+      );
+  }
+
+  const rawSeasons =
+    (Array.isArray(info?.seasons) && info.seasons) ||
+    (Array.isArray(info?.data?.seasons) && info.data.seasons) ||
+    [];
+
+  const season = rawSeasons.find(
+    (entry, index) =>
+      Number(entry.season ?? entry.number ?? index + 1) === Number(seasonNumber)
+  );
+
+  const episodes =
+    season?.episodes ||
+    season?.series ||
+    season?.data ||
+    [];
+
+  return Array.isArray(episodes)
+    ? episodes.map((episode, index) =>
+        normalizeEpisode(episode, seasonNumber, index)
+      )
+    : [];
+}
+
+async function getSeriesEpisodeStream(seriesId, seasonNumber, episodeId) {
+  const info = await getSeriesInfo(seriesId);
+  const episodes = extractEpisodes(info, seasonNumber);
+
+  const episode =
+    episodes.find((entry) => entry.id === String(episodeId)) ||
+    episodes.find((entry) => String(entry.episode) === String(episodeId));
+
+  if (!episode) {
+    throw new PlayerError("Episode is no longer available.", 404);
+  }
+
+  if (!episode.cmd) {
+    throw new PlayerError("Portal did not provide an episode playback command.");
+  }
+
+  const catalog = await activeCatalog();
+
+  const response = await portalRequest(
+    {
+      type: "series",
+      action: "create_link",
+      cmd: episode.cmd,
+      series: "1",
+      forced_storage: "undefined",
+      disable_ad: "0",
+      download: "0",
+    },
+    catalog.session
+  );
+
+  const raw =
+    typeof response.data?.js === "string"
+      ? response.data.js
+      : response.data?.js?.cmd || "";
+
+  return parsePortalStream(raw);
+}
+
+/* =====================================================
+   RELAY
+===================================================== */
+
+function createRelayTarget(url, lifetimeMs = 2 * 60 * 60_000) {
   const ticket = randomBytes(18).toString("base64url");
 
   relayTargets.set(ticket, {
@@ -845,29 +865,10 @@ function createRelayTarget(
   return `/stream/${ticket}`;
 }
 
-function refreshRelayTarget(target) {
-  target.expiresAt =
-    Date.now() + RELAY_TTL_MS;
-}
-
 function rewriteUriAttributes(line, baseUrl) {
-  return line.replace(
-    /URI=(["'])(.*?)\1/g,
-    (_match, quote, uri) => {
-      const absolute = normalizeHttpUrl(
-        uri,
-        baseUrl,
-      );
-
-      if (!absolute) {
-        return _match;
-      }
-
-      return `URI=${quote}${createRelayTarget(
-        absolute,
-      )}${quote}`;
-    },
-  );
+  return line.replace(/URI="([^"]+)"/g, (_match, uri) => {
+    return `URI="${createRelayTarget(new URL(uri, baseUrl).toString())}"`;
+  });
 }
 
 function rewriteManifest(manifest, baseUrl) {
@@ -876,25 +877,12 @@ function rewriteManifest(manifest, baseUrl) {
     .map((line) => {
       const trimmed = line.trim();
 
-      if (!trimmed) {
-        return line;
-      }
-
+      if (!trimmed) return line;
       if (trimmed.startsWith("#")) {
-        return rewriteUriAttributes(
-          line,
-          baseUrl,
-        );
+        return rewriteUriAttributes(line, baseUrl);
       }
 
-      const absolute = normalizeHttpUrl(
-        trimmed,
-        baseUrl,
-      );
-
-      return absolute
-        ? createRelayTarget(absolute)
-        : line;
+      return createRelayTarget(new URL(trimmed, baseUrl).toString());
     })
     .join("\n");
 }
@@ -903,32 +891,19 @@ function json(res, status, payload) {
   const body = JSON.stringify(payload);
 
   res.writeHead(status, {
-    "Content-Type":
-      "application/json; charset=utf-8",
-    "Content-Length":
-      Buffer.byteLength(body),
-    "Cache-Control":
-      "no-store, no-cache, must-revalidate",
-    Pragma: "no-cache",
-    Expires: "0",
-    "X-Content-Type-Options": "nosniff",
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-store",
   });
 
   res.end(body);
 }
 
-function text(
-  res,
-  status,
-  body,
-  type = "text/plain; charset=utf-8",
-  extraHeaders = {},
-) {
+function text(res, status, body, type = "text/plain; charset=utf-8") {
   res.writeHead(status, {
     "Content-Type": type,
-    "Content-Length":
-      Buffer.byteLength(body),
-    ...extraHeaders,
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-store",
   });
 
   res.end(body);
@@ -946,12 +921,8 @@ function readJson(req) {
 
       if (body.length > 64 * 1024) {
         failed = true;
-        reject(
-          new PlayerError(
-            "Request too large.",
-            413,
-          ),
-        );
+        reject(new PlayerError("Request too large.", 413));
+        req.destroy();
       }
     });
 
@@ -959,16 +930,9 @@ function readJson(req) {
       if (failed) return;
 
       try {
-        resolve(
-          JSON.parse(body || "{}"),
-        );
+        resolve(JSON.parse(body || "{}"));
       } catch {
-        reject(
-          new PlayerError(
-            "Invalid request.",
-            400,
-          ),
-        );
+        reject(new PlayerError("Invalid request.", 400));
       }
     });
 
@@ -976,28 +940,22 @@ function readJson(req) {
   });
 }
 
-function serveFile(
-  res,
-  filename,
-  contentType,
-) {
+function serveFile(res, filename, contentType) {
   try {
-    const data = fs.readFileSync(
-      path.join(ROOT, filename),
-    );
+    const data = fs.readFileSync(path.join(ROOT, filename));
 
     res.writeHead(200, {
       "Content-Type": contentType,
       "Content-Length": data.length,
 
-      // Disable stale local app assets while testing/updating.
-      "Cache-Control":
-        "no-store, no-cache, must-revalidate",
+      /*
+        v1.3: disable cache for app files while testing.
+        This prevents Windows/browser from silently running old JS/CSS.
+      */
+      "Cache-Control": "no-store, no-cache, must-revalidate",
       Pragma: "no-cache",
       Expires: "0",
-
-      "X-Content-Type-Options":
-        "nosniff",
+      "X-Content-Type-Options": "nosniff",
     });
 
     res.end(data);
@@ -1006,44 +964,25 @@ function serveFile(
   }
 }
 
-function copyHeader(
-  upstream,
-  responseHeaders,
-  name,
-) {
-  const value =
-    upstream.headers.get(name);
-
-  if (value) {
-    responseHeaders[name] = value;
-  }
+function isLikelyHls(url, contentType = "") {
+  return (
+    String(contentType).toLowerCase().includes("mpegurl") ||
+    /\.m3u8(?:$|\?)/i.test(String(url))
+  );
 }
 
 async function relay(req, res, ticket) {
   const target = relayTargets.get(ticket);
 
-  if (
-    !target ||
-    target.expiresAt < Date.now()
-  ) {
+  if (!target || target.expiresAt < Date.now()) {
     relayTargets.delete(ticket);
-
-    return text(
-      res,
-      401,
-      "Stream link expired. Select the channel or movie again.",
-      "text/plain; charset=utf-8",
-      {
-        "Cache-Control": "no-store",
-      },
-    );
+    return text(res, 401, "Stream link expired. Select the channel again.");
   }
-
-  refreshRelayTarget(target);
 
   const headers = {
     Accept: "*/*",
     "User-Agent": MAG_USER_AGENT,
+    "X-User-Agent": X_USER_AGENT,
   };
 
   if (req.headers.range) {
@@ -1059,80 +998,34 @@ async function relay(req, res, ticket) {
       signal: AbortSignal.timeout(45_000),
     });
   } catch {
-    throw new PlayerError(
-      "Stream server connection timed out.",
-      504,
-    );
+    return text(res, 504, "Stream server timed out.");
   }
 
-  if (
-    !upstream.ok &&
-    upstream.status !== 206
-  ) {
+  if (!upstream.ok && upstream.status !== 206) {
     return text(
       res,
       upstream.status,
-      `Stream server returned ${upstream.status}.`,
-      "text/plain; charset=utf-8",
-      {
-        "Cache-Control": "no-store",
-      },
+      `Stream server returned ${upstream.status}.`
     );
   }
 
-  const contentType =
-    upstream.headers.get("content-type") || "";
-
-  let upstreamPath = "";
-
-  try {
-    upstreamPath =
-      new URL(upstream.url)
-        .pathname
-        .toLowerCase();
-  } catch {
-    upstreamPath = "";
-  }
-
-  const isManifest =
-    contentType
-      .toLowerCase()
-      .includes("mpegurl") ||
-    upstreamPath.endsWith(".m3u8");
+  const contentType = upstream.headers.get("content-type") || "";
+  const isManifest = isLikelyHls(upstream.url, contentType);
 
   if (isManifest) {
-    const manifest =
-      await upstream.text();
-
-    const body = rewriteManifest(
-      manifest,
-      upstream.url,
-    );
+    const body = rewriteManifest(await upstream.text(), upstream.url);
 
     return text(
       res,
       200,
       body,
-      "application/vnd.apple.mpegurl; charset=utf-8",
-      {
-        "Cache-Control":
-          "no-store, no-cache, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
+      "application/vnd.apple.mpegurl; charset=utf-8"
     );
   }
 
   const responseHeaders = {
-    "Content-Type":
-      contentType ||
-      "application/octet-stream",
-    "Cache-Control":
-      upstream.headers.get(
-        "cache-control",
-      ) || "private, max-age=5",
-    "X-Content-Type-Options":
-      "nosniff",
+    "Content-Type": contentType || "application/octet-stream",
+    "Cache-Control": "no-store",
   };
 
   for (const header of [
@@ -1141,352 +1034,134 @@ async function relay(req, res, ticket) {
     "content-length",
     "content-disposition",
   ]) {
-    copyHeader(
-      upstream,
-      responseHeaders,
-      header,
-    );
+    const value = upstream.headers.get(header);
+    if (value) responseHeaders[header] = value;
   }
 
-  res.writeHead(
-    upstream.status,
-    responseHeaders,
-  );
+  res.writeHead(upstream.status, responseHeaders);
 
   if (!upstream.body) {
     return res.end();
   }
 
-  const readable =
-    Readable.fromWeb(upstream.body);
+  const readable = Readable.fromWeb(upstream.body);
 
-  readable.on("error", () => {
-    if (!res.destroyed) {
-      res.destroy();
-    }
+  req.on("close", () => {
+    try {
+      readable.destroy();
+    } catch {}
   });
 
-  req.on("aborted", () => {
-    readable.destroy();
+  readable.on("error", () => {
+    if (!res.destroyed) res.destroy();
   });
 
   readable.pipe(res);
 }
 
-async function relayPoster(
-  req,
-  res,
-  ticket,
-) {
-  const target = posterTargets.get(ticket);
-
-  if (
-    !target ||
-    target.expiresAt < Date.now()
-  ) {
-    posterTargets.delete(ticket);
-
-    return text(
-      res,
-      404,
-      "Poster expired.",
-      "text/plain; charset=utf-8",
-      {
-        "Cache-Control": "no-store",
-      },
-    );
-  }
-
-  target.expiresAt =
-    Date.now() + POSTER_TTL_MS;
-
-  let upstream;
-
-  try {
-    upstream = await fetch(target.url, {
-      headers: {
-        Accept:
-          "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-        "User-Agent":
-          MAG_USER_AGENT,
-      },
-      redirect: "follow",
-      signal: AbortSignal.timeout(20_000),
-    });
-  } catch {
-    return text(
-      res,
-      502,
-      "Poster unavailable.",
-      "text/plain; charset=utf-8",
-      {
-        "Cache-Control": "no-store",
-      },
-    );
-  }
-
-  if (!upstream.ok) {
-    return text(
-      res,
-      upstream.status,
-      "Poster unavailable.",
-      "text/plain; charset=utf-8",
-      {
-        "Cache-Control": "no-store",
-      },
-    );
-  }
-
-  const contentType =
-    upstream.headers.get("content-type") ||
-    "image/jpeg";
-
-  const responseHeaders = {
-    "Content-Type": contentType,
-    "Cache-Control":
-      "private, max-age=3600",
-    "X-Content-Type-Options":
-      "nosniff",
-  };
-
-  copyHeader(
-    upstream,
-    responseHeaders,
-    "content-length",
-  );
-
-  res.writeHead(200, responseHeaders);
-
-  if (!upstream.body) {
-    return res.end();
-  }
-
-  Readable.fromWeb(upstream.body).pipe(res);
-}
+/* =====================================================
+   ROUTES
+===================================================== */
 
 async function handle(req, res) {
-  const requestUrl = new URL(
-    req.url,
-    `http://${HOST}:${PORT}`,
-  );
+  const requestUrl = new URL(req.url, `http://${HOST}:${PORT}`);
 
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname === "/"
-  ) {
-    return serveFile(
-      res,
-      "index.html",
-      "text/html; charset=utf-8",
-    );
+  if (req.method === "GET" && requestUrl.pathname === "/") {
+    return serveFile(res, "index.html", "text/html; charset=utf-8");
   }
 
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname === "/styles.css"
-  ) {
-    return serveFile(
-      res,
-      "styles.css",
-      "text/css; charset=utf-8",
-    );
+  if (req.method === "GET" && requestUrl.pathname === "/styles.css") {
+    return serveFile(res, "styles.css", "text/css; charset=utf-8");
   }
 
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname === "/app.js"
-  ) {
-    return serveFile(
-      res,
-      "app.js",
-      "text/javascript; charset=utf-8",
-    );
+  if (req.method === "GET" && requestUrl.pathname === "/app.js") {
+    return serveFile(res, "app.js", "text/javascript; charset=utf-8");
   }
 
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname === "/hls.min.js"
-  ) {
-    return serveFile(
-      res,
-      "hls.min.js",
-      "text/javascript; charset=utf-8",
-    );
+  if (req.method === "GET" && requestUrl.pathname === "/hls.min.js") {
+    return serveFile(res, "hls.min.js", "text/javascript; charset=utf-8");
   }
 
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname === "/api/config"
-  ) {
+  if (req.method === "GET" && requestUrl.pathname === "/api/config") {
     let configured = false;
     let parentalConfigured = false;
+    let serviceId = null;
+    let mac = "";
 
     try {
       configured = Boolean(readConfig());
-
-      const stored =
-        readStoredConfig();
-
-      parentalConfigured =
-        configured &&
-        Boolean(
-          stored.parentalPinHash,
-        );
+      const stored = readStoredConfig();
+      parentalConfigured = Boolean(stored.parentalPinHash);
+      serviceId = stored.serviceId || null;
+      mac = stored.mac || "";
     } catch {
       configured = false;
-      parentalConfigured = false;
     }
 
     return json(res, 200, {
       configured,
       parentalConfigured,
-      services:
-        Object.entries(SERVICES).map(
-          ([id, service]) => ({
-            id,
-            name: service.name,
-          }),
-        ),
-      version: "1.2.0",
+      serviceId,
+      mac,
+      services: Object.entries(SERVICES).map(([id, service]) => ({
+        id,
+        name: service.name,
+      })),
     });
   }
 
-  if (
-    req.method === "POST" &&
-    requestUrl.pathname === "/api/config"
-  ) {
+  if (req.method === "POST" && requestUrl.pathname === "/api/config") {
     const body = await readJson(req);
-
-    saveConfig(
-      body.serviceId,
-      body.mac,
-      body.parentalPin,
-    );
-
-    return json(res, 200, {
-      ok: true,
-    });
+    saveConfig(body.serviceId, body.mac, body.parentalPin);
+    return json(res, 200, { ok: true });
   }
 
   if (
     req.method === "POST" &&
-    requestUrl.pathname ===
-      "/api/parental/verify"
+    requestUrl.pathname === "/api/parental/verify"
   ) {
     const body = await readJson(req);
     const stored = readStoredConfig();
 
-    if (!stored.parentalPinHash) {
-      throw new PlayerError(
-        "Parental PIN is not configured.",
-        400,
-      );
-    }
-
-    const actual = Buffer.from(
-      stored.parentalPinHash,
-      "hex",
-    );
-
+    const actual = Buffer.from(stored.parentalPinHash || "", "hex");
     const expected = Buffer.from(
-      pinHash(
-        String(body.pin || ""),
-      ),
-      "hex",
+      pinHash(String(body.pin || "")),
+      "hex"
     );
 
     const valid =
+      actual.length > 0 &&
       actual.length === expected.length &&
-      timingSafeEqual(
-        actual,
-        expected,
-      );
+      timingSafeEqual(actual, expected);
 
     return json(
       res,
       valid ? 200 : 401,
-      valid
-        ? { ok: true }
-        : {
-            error:
-              "Incorrect parental PIN.",
-          },
+      valid ? { ok: true } : { error: "Incorrect parental PIN." }
     );
   }
 
-  if (
-    req.method === "POST" &&
-    requestUrl.pathname ===
-      "/api/parental/update"
-  ) {
-    const body = await readJson(req);
-
-    updateParentalPin(
-      body.pin ??
-        body.parentalPin ??
-        body.newPin,
-    );
-
-    return json(res, 200, {
-      ok: true,
-    });
+  if (req.method === "GET" && requestUrl.pathname === "/api/catalog") {
+    return json(res, 200, (await activeCatalog()).publicCatalog);
   }
 
   if (
-    req.method === "POST" &&
-    (
-      requestUrl.pathname ===
-        "/api/config/reset" ||
-      requestUrl.pathname ===
-        "/api/reset"
-    )
+    req.method === "GET" &&
+    requestUrl.pathname === "/api/vod/categories"
   ) {
-    resetPortalConfig();
-
     return json(res, 200, {
-      ok: true,
+      categories: await getVodCategories(),
     });
   }
 
   if (
     req.method === "GET" &&
-    requestUrl.pathname ===
-      "/api/catalog"
+    requestUrl.pathname === "/api/vod/items"
   ) {
-    return json(
-      res,
-      200,
-      (await activeCatalog())
-        .publicCatalog,
-    );
-  }
-
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname ===
-      "/api/vod/categories"
-  ) {
-    return json(res, 200, {
-      categories:
-        await getVodCategories(),
-    });
-  }
-
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname ===
-      "/api/vod/items"
-  ) {
-    const categoryId =
-      requestUrl.searchParams.get(
-        "categoryId",
-      );
+    const categoryId = requestUrl.searchParams.get("categoryId");
 
     if (!categoryId) {
-      throw new PlayerError(
-        "Choose a VOD category.",
-        400,
-      );
+      throw new PlayerError("Choose a VOD category.", 400);
     }
 
     return json(
@@ -1494,193 +1169,207 @@ async function handle(req, res) {
       200,
       await getVodItems(
         categoryId,
-        requestUrl.searchParams.get(
-          "page",
-        ),
-      ),
+        requestUrl.searchParams.get("page")
+      )
     );
   }
 
-  if (
-    req.method === "POST" &&
-    requestUrl.pathname === "/api/play"
-  ) {
+  if (req.method === "POST" && requestUrl.pathname === "/api/play") {
     const body = await readJson(req);
 
-    if (
-      typeof body.channelId !==
-        "string" ||
-      !body.channelId.trim()
-    ) {
-      throw new PlayerError(
-        "Choose a valid channel.",
-        400,
-      );
+    if (typeof body.channelId !== "string") {
+      throw new PlayerError("Choose a valid channel.", 400);
     }
 
-    const streamUrl =
-      await getStreamUrl(
-        body.channelId,
-      );
+    /*
+      Always request a fresh portal create_link on each recovery.
+      app.js v1.3 will call this again if a short-lived IPTV URL dies.
+    */
+    const streamUrl = await getStreamUrl(body.channelId);
 
     return json(res, 200, {
-      stream:
-        createRelayTarget(
-          streamUrl,
-        ),
+      stream: createRelayTarget(streamUrl),
+      hls: /\.m3u8(?:$|\?)/i.test(streamUrl),
     });
   }
 
   if (
     req.method === "POST" &&
-    requestUrl.pathname ===
-      "/api/vod/play"
+    requestUrl.pathname === "/api/vod/play"
   ) {
     const body = await readJson(req);
 
     if (
-      typeof body.categoryId !==
-        "string" ||
-      typeof body.itemId !==
-        "string" ||
-      !body.categoryId.trim() ||
-      !body.itemId.trim()
+      typeof body.categoryId !== "string" ||
+      typeof body.itemId !== "string"
     ) {
-      throw new PlayerError(
-        "Choose a valid movie.",
-        400,
-      );
+      throw new PlayerError("Choose a valid movie.", 400);
     }
 
-    const streamUrl =
-      await getVodStreamUrl(
-        body.categoryId,
-        body.itemId,
-      );
+    const streamUrl = await getVodStreamUrl(
+      body.categoryId,
+      body.itemId
+    );
 
     return json(res, 200, {
-      stream:
-        createRelayTarget(
-          streamUrl,
-        ),
+      stream: createRelayTarget(streamUrl),
+      hls: /\.m3u8(?:$|\?)/i.test(streamUrl),
     });
   }
 
   if (
     req.method === "GET" &&
-    requestUrl.pathname.startsWith(
-      "/stream/",
-    )
+    requestUrl.pathname === "/api/series/categories"
+  ) {
+    return json(res, 200, {
+      categories: await getSeriesCategories(),
+    });
+  }
+
+  if (
+    req.method === "GET" &&
+    requestUrl.pathname === "/api/series/items"
+  ) {
+    const categoryId = requestUrl.searchParams.get("categoryId");
+
+    if (!categoryId) {
+      throw new PlayerError("Choose a series category.", 400);
+    }
+
+    return json(
+      res,
+      200,
+      await getSeriesItems(
+        categoryId,
+        requestUrl.searchParams.get("page")
+      )
+    );
+  }
+
+  if (
+    req.method === "GET" &&
+    requestUrl.pathname === "/api/series/seasons"
+  ) {
+    const seriesId = requestUrl.searchParams.get("seriesId");
+
+    if (!seriesId) {
+      throw new PlayerError("Choose a series.", 400);
+    }
+
+    const info = await getSeriesInfo(seriesId);
+
+    return json(res, 200, {
+      seasons: extractSeasons(info),
+    });
+  }
+
+  if (
+    req.method === "GET" &&
+    requestUrl.pathname === "/api/series/episodes"
+  ) {
+    const seriesId = requestUrl.searchParams.get("seriesId");
+    const season = requestUrl.searchParams.get("season");
+
+    if (!seriesId || !season) {
+      throw new PlayerError("Choose a series and season.", 400);
+    }
+
+    const info = await getSeriesInfo(seriesId);
+
+    return json(res, 200, {
+      episodes: extractEpisodes(info, Number(season)),
+    });
+  }
+
+  if (
+    req.method === "POST" &&
+    requestUrl.pathname === "/api/series/play"
+  ) {
+    const body = await readJson(req);
+
+    if (
+      typeof body.seriesId !== "string" ||
+      body.season == null ||
+      body.episodeId == null
+    ) {
+      throw new PlayerError("Choose a valid episode.", 400);
+    }
+
+    const streamUrl = await getSeriesEpisodeStream(
+      body.seriesId,
+      Number(body.season),
+      String(body.episodeId)
+    );
+
+    return json(res, 200, {
+      stream: createRelayTarget(streamUrl),
+      hls: /\.m3u8(?:$|\?)/i.test(streamUrl),
+    });
+  }
+
+  if (
+    req.method === "GET" &&
+    requestUrl.pathname.startsWith("/stream/")
   ) {
     return relay(
       req,
       res,
-      requestUrl.pathname.slice(
-        "/stream/".length,
-      ),
+      requestUrl.pathname.slice("/stream/".length)
     );
   }
 
-  if (
-    req.method === "GET" &&
-    requestUrl.pathname.startsWith(
-      "/poster/",
-    )
-  ) {
-    return relayPoster(
-      req,
-      res,
-      requestUrl.pathname.slice(
-        "/poster/".length,
-      ),
-    );
-  }
-
-  return text(
-    res,
-    404,
-    "Not found.",
-  );
+  return text(res, 404, "Not found.");
 }
 
-const server = http.createServer(
-  (req, res) => {
-    handle(req, res).catch(
-      (error) => {
-        console.error(
-          error?.stack ||
-            error?.message ||
-            error,
-        );
+/* =====================================================
+   SERVER
+===================================================== */
 
-        if (res.headersSent) {
-          return res.destroy();
-        }
+const server = http.createServer((req, res) => {
+  handle(req, res).catch((error) => {
+    console.error(error.message);
 
-        json(
-          res,
-          error.status || 500,
-          {
-            error:
-              error.message ||
-              "Local player request failed.",
-          },
-        );
-      },
-    );
-  },
-);
+    if (res.headersSent) {
+      return res.destroy();
+    }
+
+    json(res, error.status || 500, {
+      error: error.message || "Local player request failed.",
+    });
+  });
+});
 
 function openBrowser() {
-  const url =
-    `http://${HOST}:${PORT}`;
+  const url = `http://${HOST}:${PORT}`;
 
-  if (
-    process.env.NO_OPEN_BROWSER ===
-    "1"
-  ) {
-    return;
-  }
+  if (process.env.NO_OPEN_BROWSER === "1") return;
 
   const command =
     process.platform === "win32"
-      ? [
-          "cmd",
-          ["/c", "start", "", url],
-        ]
+      ? ["cmd", ["/c", "start", "", url]]
       : process.platform === "darwin"
         ? ["open", [url]]
         : ["xdg-open", [url]];
 
   try {
-    spawn(
-      command[0],
-      command[1],
-      {
-        detached: true,
-        stdio: "ignore",
-      },
-    ).unref();
+    spawn(command[0], command[1], {
+      detached: true,
+      stdio: "ignore",
+    }).unref();
   } catch {
-    console.log(
-      `Open ${url} in your browser.`,
-    );
+    console.log(`Open ${url} in your browser.`);
   }
 }
 
 server.on("error", (error) => {
   if (error.code === "EADDRINUSE") {
     console.log(
-      "Player is already running. Opening it in your browser...",
+      "Player is already running. Opening it in your browser..."
     );
 
     openBrowser();
 
-    setTimeout(
-      () => process.exit(0),
-      800,
-    );
-
+    setTimeout(() => process.exit(0), 800);
     return;
   }
 
@@ -1688,22 +1377,12 @@ server.on("error", (error) => {
   process.exit(1);
 });
 
-server.listen(
-  PORT,
-  HOST,
-  () => {
-    console.log(
-      "NetPlus IPTV Player v1.2.0 is running.",
-    );
+server.listen(PORT, HOST, () => {
+  console.log("NetPlus IPTV Player v1.3.0 is running.");
+  console.log(`Open http://${HOST}:${PORT}`);
+  console.log(
+    "Keep this window open while watching. Close it to stop the player."
+  );
 
-    console.log(
-      `Open http://${HOST}:${PORT}`,
-    );
-
-    console.log(
-      "Keep this window open while watching. Close it to stop the player.",
-    );
-
-    openBrowser();
-  },
-);
+  openBrowser();
+});
