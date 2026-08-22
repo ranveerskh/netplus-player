@@ -1,7 +1,7 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.3.0
+ VERSION: 1.4.0
  File: server.cjs
 =========================================================
 */
@@ -410,8 +410,10 @@ function cleanPosterUrl(value) {
 }
 
 function normalizeMediaItem(row, kind = "vod") {
+  const id = row?.id ?? row?.series_id ?? row?.movie_id ?? row?.stream_id;
+
   return {
-    id: String(row.id),
+    id: String(id ?? ""),
     title: String(row.name || row.title || "").trim(),
     description: String(
       row.description || row.description_en || row.plot || ""
@@ -427,7 +429,7 @@ function normalizeMediaItem(row, kind = "vod") {
         row.logo ||
         row.movie_image
     ),
-    cmd: String(row.cmd || ""),
+    cmd: String(row.cmd || row.command || row.playback_cmd || ""),
     kind,
   };
 }
@@ -479,7 +481,13 @@ async function getVodItems(categoryId, page = 0) {
   );
 
   const js = response.data?.js || {};
-  const rows = Array.isArray(js.data) ? js.data : [];
+  const rows = Array.isArray(js)
+    ? js
+    : Array.isArray(js.data)
+      ? js.data
+      : Array.isArray(response.data)
+        ? response.data
+        : [];
 
   /*
     Do NOT require cmd here. Some Stalker portals only provide the
@@ -487,7 +495,10 @@ async function getVodItems(categoryId, page = 0) {
     Keeping the title visible fixes categories that previously looked empty.
   */
   const items = rows
-    .filter((row) => row.id != null && (row.name || row.title))
+    .filter((row) =>
+      (row.id ?? row.series_id ?? row.movie_id ?? row.stream_id) != null &&
+      (row.name || row.title)
+    )
     .map((row) => normalizeMediaItem(row, "vod"));
 
   const value = {
@@ -540,6 +551,8 @@ async function resolveVodCommand(item) {
     js.cmd ||
       js.movie?.cmd ||
       js.data?.cmd ||
+      js.info?.cmd ||
+      js.url ||
       ""
   );
 }
@@ -631,10 +644,19 @@ async function getSeriesItems(categoryId, page = 0) {
   );
 
   const js = response.data?.js || {};
-  const rows = Array.isArray(js.data) ? js.data : [];
+  const rows = Array.isArray(js)
+    ? js
+    : Array.isArray(js.data)
+      ? js.data
+      : Array.isArray(response.data)
+        ? response.data
+        : [];
 
   const items = rows
-    .filter((row) => row.id != null && (row.name || row.title))
+    .filter((row) =>
+      (row.id ?? row.series_id ?? row.movie_id ?? row.stream_id) != null &&
+      (row.name || row.title)
+    )
     .map((row) => normalizeMediaItem(row, "series"));
 
   const value = {
@@ -949,7 +971,7 @@ function serveFile(res, filename, contentType) {
       "Content-Length": data.length,
 
       /*
-        v1.3: disable cache for app files while testing.
+        v1.4: disable cache for app files while testing.
         This prevents Windows/browser from silently running old JS/CSS.
       */
       "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -983,6 +1005,7 @@ async function relay(req, res, ticket) {
     Accept: "*/*",
     "User-Agent": MAG_USER_AGENT,
     "X-User-Agent": X_USER_AGENT,
+    Referer: target.url,
   };
 
   if (req.headers.range) {
@@ -1183,7 +1206,7 @@ async function handle(req, res) {
 
     /*
       Always request a fresh portal create_link on each recovery.
-      app.js v1.3 will call this again if a short-lived IPTV URL dies.
+      app.js v1.4 will call this again if a short-lived IPTV URL dies.
     */
     const streamUrl = await getStreamUrl(body.channelId);
 
@@ -1378,7 +1401,7 @@ server.on("error", (error) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log("NetPlus IPTV Player v1.3.0 is running.");
+  console.log("NetPlus IPTV Player v1.4.0 is running.");
   console.log(`Open http://${HOST}:${PORT}`);
   console.log(
     "Keep this window open while watching. Close it to stop the player."
