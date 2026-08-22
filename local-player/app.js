@@ -1,12 +1,12 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.3.0
+ VERSION: 1.4.0
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.4.0";
 
 const state = {
   catalog: null,
@@ -23,7 +23,9 @@ const state = {
   hiddenGroups: new Set(JSON.parse(localStorage.getItem("hiddenGroups") || "[]")),
   hiddenChannels: new Set(JSON.parse(localStorage.getItem("hiddenChannels") || "[]")),
   favoriteChannels: new Set(JSON.parse(localStorage.getItem("favoriteChannels") || "[]")),
+  favoriteMedia: new Set(JSON.parse(localStorage.getItem("favoriteMedia") || "[]")),
   watchHistory: JSON.parse(localStorage.getItem("watchHistory") || "{}"),
+  watchMeta: JSON.parse(localStorage.getItem("watchMeta") || "{}"),
 
   editingGroups: false,
   editingChannels: false,
@@ -45,6 +47,16 @@ const state = {
     retryToken: 0,
     categoryScrollTop: 0,
   },
+
+  contentType: "vod",
+  series: {
+    categories: [], categoryId: null, query: "", items: [], itemIds: new Set(),
+    selected: null, page: 0, total: 0, loading: false, ended: false, loadToken: 0,
+    hls: null,
+  },
+  liveWatchdogTimer: null,
+  liveLastFragmentAt: 0,
+  liveRecoveryInFlight: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -92,6 +104,11 @@ const elements = {
   notice: $("#notice"),
 
   vodWorkspace: $("#vodWorkspace"),
+  dashboardWorkspace: $("#dashboardWorkspace"),
+  favoritesWorkspace: $("#favoritesWorkspace"),
+  continueWatching: $("#continueWatching"),
+  favoriteChannelsGrid: $("#favoriteChannelsGrid"),
+  favoriteMediaGrid: $("#favoriteMediaGrid"),
   vodSearch: $("#vodSearch"),
   vodCategories: $("#vodCategories"),
   vodCategoryTitle: $("#vodCategoryTitle"),
@@ -124,6 +141,30 @@ const elements = {
   vodModalDescription: $("#vodModalDescription"),
   vodPlayButton: $("#vodPlayButton"),
   vodResumeButton: $("#vodResumeButton"),
+  vodFavoriteButton: $("#vodFavoriteButton"),
+
+  seriesWorkspace: $("#seriesWorkspace"),
+  seriesSearch: $("#seriesSearch"),
+  seriesCategories: $("#seriesCategories"),
+  seriesCategoryTitle: $("#seriesCategoryTitle"),
+  seriesCategoryMeta: $("#seriesCategoryMeta"),
+  seriesGrid: $("#seriesGrid"),
+  seriesLoadMore: $("#seriesLoadMore"),
+  seriesLoadSpinner: $("#seriesLoadSpinner"),
+  seriesEndMessage: $("#seriesEndMessage"),
+  seriesPlayerSection: $("#seriesPlayerSection"),
+  seriesVideo: $("#seriesVideo"),
+  seriesVideoLoading: $("#seriesVideoLoading"),
+  closeSeriesPlayerButton: $("#closeSeriesPlayerButton"),
+  seriesModal: $("#seriesModal"),
+  seriesClose: $("#seriesClose"),
+  seriesModalPoster: $("#seriesModalPoster"),
+  seriesModalTitle: $("#seriesModalTitle"),
+  seriesModalMeta: $("#seriesModalMeta"),
+  seriesModalDescription: $("#seriesModalDescription"),
+  seriesSeasonSelect: $("#seriesSeasonSelect"),
+  seriesEpisodes: $("#seriesEpisodes"),
+  seriesFavoriteButton: $("#seriesFavoriteButton"),
 
   pinModal: $("#pinModal"),
   closePinModal: $("#closePinModal"),
@@ -188,6 +229,7 @@ function persistSet(key, set) {
 
 function saveWatchHistory() {
   localStorage.setItem("watchHistory", JSON.stringify(state.watchHistory));
+  localStorage.setItem("watchMeta", JSON.stringify(state.watchMeta));
 }
 
 function categoryById(id) {
@@ -216,6 +258,9 @@ function destroyHls(key) {
 
 function stopLivePlayback(clearSelection = false) {
   state.liveRetryToken += 1;
+  clearInterval(state.liveWatchdogTimer);
+  state.liveWatchdogTimer = null;
+  state.liveRecoveryInFlight = false;
   destroyHls("live");
   stopMedia(elements.video);
   if (elements.videoLoading) elements.videoLoading.hidden = true;
@@ -239,6 +284,9 @@ function showSetup() {
   elements.modebar.hidden = true;
   elements.workspace.hidden = true;
   elements.vodWorkspace.hidden = true;
+  elements.seriesWorkspace.hidden = true;
+  elements.dashboardWorkspace.hidden = true;
+  elements.favoritesWorkspace.hidden = true;
   elements.settingsModal.hidden = true;
   elements.vodModal.hidden = true;
   elements.pinModal.hidden = true;
@@ -251,24 +299,41 @@ function showSetup() {
 ===================================================== */
 
 function setMode(mode) {
-  const isVod = mode === "vod";
+  const isLive = mode === "live";
+  const isContent = mode === "content";
+  const isDashboard = mode === "dashboard";
+  const isFavorites = mode === "favorites";
 
-  if (isVod) {
-    /* v1.3: never leave Live TV playing behind Movies & Series. */
-    stopLivePlayback(false);
-  } else {
-    /* Same rule in reverse. */
-    stopVodPlayback();
-  }
+  if (isLive) stopVodPlayback();
+  else stopLivePlayback(false);
 
-  elements.workspace.hidden = isVod;
-  elements.vodWorkspace.hidden = !isVod;
+  if (!isContent) stopVodPlayback();
+  elements.workspace.hidden = !isLive;
+  elements.dashboardWorkspace.hidden = !isDashboard;
+  elements.favoritesWorkspace.hidden = !isFavorites;
+  elements.vodWorkspace.hidden = !isContent || state.contentType !== "vod";
+  elements.seriesWorkspace.hidden = !isContent || state.contentType !== "series";
 
   document.querySelectorAll(".mode-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
   });
 
-  if (isVod && !state.vod.categories.length) loadVodCategories();
+  if (mode === "settings") {
+    elements.settingsModal.hidden = false;
+    return;
+  }
+  if (isDashboard) renderDashboard();
+  if (isFavorites) renderFavorites();
+  if (isContent && state.contentType === "vod" && !state.vod.categories.length) loadVodCategories();
+  if (isContent && state.contentType === "series" && !state.series.categories.length) loadSeriesCategories();
+}
+
+function setContentType(type) {
+  state.contentType = type === "series" ? "series" : "vod";
+  document.querySelectorAll(".content-type-button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.contentType === state.contentType);
+  });
+  setMode("content");
 }
 
 /* =====================================================
@@ -358,7 +423,7 @@ elements.pinUnlockForm.addEventListener("submit", async (event) => {
   }
 
   elements.unlockPinButton.disabled = true;
-  elements.unlockPinButton.textContent = "Unlockingâ¦";
+  elements.unlockPinButton.textContent = "Unlocking...";
 
   try {
     await request("/api/parental/verify", {
@@ -404,7 +469,7 @@ function renderCategories() {
   );
 
   const categories = [
-    { id: "favorites", title: "â Favorites", locked: false },
+    { id: "favorites", title: "Favorites", locked: false },
     { id: "all", title: "All channels", locked: false },
     ...visiblePortalCategories,
   ];
@@ -420,12 +485,12 @@ function renderCategories() {
 
     const title = document.createElement("span");
     title.textContent =
-      category.locked && !state.parentalUnlocked ? `ð ${category.title}` : category.title;
+      category.locked && !state.parentalUnlocked ? `[PIN] ${category.title}` : category.title;
 
     if (state.editingGroups && !["all", "favorites"].includes(category.id)) {
       const visibility = document.createElement("span");
       visibility.className = "visibility-toggle";
-      visibility.textContent = state.hiddenGroups.has(category.id) ? "â" : "â";
+      visibility.textContent = state.hiddenGroups.has(category.id) ? "X" : "Show";
       visibility.addEventListener("click", (event) => {
         event.stopPropagation();
         if (state.hiddenGroups.has(category.id)) state.hiddenGroups.delete(category.id);
@@ -437,7 +502,7 @@ function renderCategories() {
     }
 
     const arrow = document.createElement("em");
-    arrow.textContent = "âº";
+    arrow.textContent = ">";
     button.append(title, arrow);
 
     button.addEventListener("click", () => {
@@ -504,7 +569,7 @@ function renderChannels() {
 
     if (state.editingChannels) {
       toggle.className = "visibility-toggle";
-      toggle.textContent = state.hiddenChannels.has(channel.id) ? "â" : "â";
+      toggle.textContent = state.hiddenChannels.has(channel.id) ? "X" : "Show";
     } else {
       toggle.className =
         `favorite-toggle${state.favoriteChannels.has(channel.id) ? " is-favorite" : ""}`;
@@ -545,7 +610,7 @@ function renderChannels() {
 
     const play = document.createElement("span");
     play.className = "channel-play";
-    play.textContent = "â¶";
+    play.textContent = "Play";
 
     button.append(toggle, icon, copy, play);
 
@@ -573,7 +638,7 @@ function renderChannels() {
 
   elements.channels.replaceChildren(...rows);
 
-  /* v1.3: selecting a channel must not jump list back to top. */
+  /* v1.4: selecting a channel must not jump list back to top. */
   requestAnimationFrame(() => {
     elements.channels.scrollTop = scrollTop;
   });
@@ -589,7 +654,7 @@ async function loadCatalog() {
   setStatus("Connecting");
   showNotice("");
 
-  elements.channels.innerHTML = '<p class="list-note">Loading portal catalogueâ¦</p>';
+  elements.channels.innerHTML = '<p class="list-note">Loading portal catalogue...</p>';
 
   try {
     state.catalog = await request("/api/catalog");
@@ -605,6 +670,7 @@ async function loadCatalog() {
 
     renderCategories();
     renderChannels();
+    setMode("dashboard");
   } catch (error) {
     setStatus("Connection failed");
     showNotice(error.message);
@@ -628,7 +694,7 @@ function livePlaybackFailed(message) {
 
 function attachLiveHls(stream, token) {
   const hls = new window.Hls({
-    enableWorker: true,
+    enableWorker: false,
     lowLatencyMode: false,
     backBufferLength: 60,
     maxBufferLength: 90,
@@ -653,6 +719,8 @@ function attachLiveHls(stream, token) {
 
   const freshLink = () => {
     if (token !== state.liveRetryToken || !state.selected) return;
+    if (state.liveRecoveryInFlight) return;
+    state.liveRecoveryInFlight = true;
 
     if (freshLinkRecoveries >= 4) {
       livePlaybackFailed(
@@ -669,7 +737,10 @@ function attachLiveHls(stream, token) {
 
     setTimeout(() => {
       if (state.selected?.id === selectedId && token === state.liveRetryToken) {
+        state.liveRecoveryInFlight = false;
         playSelectedLive(true);
+      } else {
+        state.liveRecoveryInFlight = false;
       }
     }, 700);
   };
@@ -683,10 +754,15 @@ function attachLiveHls(stream, token) {
 
   hls.on(window.Hls.Events.FRAG_LOADED, () => {
     networkRecoveries = 0;
+    state.liveLastFragmentAt = Date.now();
+    state.liveRecoveryInFlight = false;
   });
 
   hls.on(window.Hls.Events.ERROR, (_event, data) => {
-    if (token !== state.liveRetryToken || !data.fatal) return;
+    if (token !== state.liveRetryToken) return;
+
+    const isResetError = /levelParsingError|mediaSourceRequiresReset/i.test(String(data.details || data.reason || ""));
+    if (!data.fatal && !isResetError) return;
 
     if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR) {
       if (networkRecoveries < 4) {
@@ -724,6 +800,12 @@ function attachLiveHls(stream, token) {
 
   hls.loadSource(stream);
   hls.attachMedia(elements.video);
+  state.liveLastFragmentAt = Date.now();
+  clearInterval(state.liveWatchdogTimer);
+  state.liveWatchdogTimer = setInterval(() => {
+    if (token !== state.liveRetryToken || !state.selected || elements.video.paused) return;
+    if (Date.now() - state.liveLastFragmentAt > 15_000) freshLink();
+  }, 5_000);
 }
 
 async function playSelectedLive(isRecovery = false) {
@@ -821,17 +903,17 @@ elements.playPauseBtn.addEventListener("click", () => {
 });
 
 elements.video.addEventListener("play", () => {
-  elements.playPauseBtn.textContent = "â¸";
+  elements.playPauseBtn.textContent = "Pause";
 });
 
 elements.video.addEventListener("pause", () => {
-  elements.playPauseBtn.textContent = "â¶";
+  elements.playPauseBtn.textContent = "Play";
   elements.customControls.classList.add("active");
 });
 
 elements.muteBtn.addEventListener("click", () => {
   elements.video.muted = !elements.video.muted;
-  elements.muteBtn.textContent = elements.video.muted ? "ð" : "ð";
+  elements.muteBtn.textContent = elements.video.muted ? "Muted" : "Vol";
   elements.volumeSlider.value = elements.video.muted ? "0" : String(elements.video.volume);
 });
 
@@ -839,7 +921,7 @@ elements.volumeSlider.addEventListener("input", (event) => {
   const volume = Number(event.target.value);
   elements.video.volume = volume;
   elements.video.muted = volume === 0;
-  elements.muteBtn.textContent = volume === 0 ? "ð" : "ð";
+  elements.muteBtn.textContent = volume === 0 ? "Muted" : "Vol";
 });
 
 elements.fullscreenBtn.addEventListener("click", () => {
@@ -866,7 +948,7 @@ function renderVodCategories() {
     if (category.locked && !state.parentalUnlocked) {
       const lock = document.createElement("span");
       lock.className = "vod-lock";
-      lock.textContent = "ð";
+      lock.textContent = "PIN";
       button.append(lock);
     }
 
@@ -945,7 +1027,7 @@ function renderVodGrid() {
 
     const play = document.createElement("span");
     play.className = "vod-card-play";
-    play.textContent = "â¶";
+    play.textContent = "Play";
 
     const title = document.createElement("strong");
     title.textContent = item.title;
@@ -980,7 +1062,7 @@ function renderVodGrid() {
 }
 
 async function loadVodCategories() {
-  elements.vodCategories.innerHTML = '<p class="list-note">Loading categoriesâ¦</p>';
+  elements.vodCategories.innerHTML = '<p class="list-note">Loading categories...</p>';
 
   try {
     const response = await request("/api/vod/categories");
@@ -1024,7 +1106,7 @@ async function selectVodCategory(categoryId) {
   state.vod.query = elements.vodSearch.value.trim();
 
   elements.vodEndMessage.hidden = true;
-  elements.vodGrid.innerHTML = '<p class="list-note">Loading titlesâ¦</p>';
+  elements.vodGrid.innerHTML = '<p class="list-note">Loading titles...</p>';
 
   renderVodCategories();
   await loadNextVodPage(true);
@@ -1106,6 +1188,8 @@ vodObserver.observe(elements.vodLoadMore);
 
 function openVodModal(item) {
   state.vod.selected = item;
+  state.watchMeta[item.id] = { ...item, mediaType: "vod" };
+  saveWatchHistory();
 
   elements.vodModalTitle.textContent = item.title;
   elements.vodModalMeta.textContent =
@@ -1119,10 +1203,12 @@ function openVodModal(item) {
 
   if (savedTime > 30) {
     elements.vodResumeButton.hidden = false;
-    elements.vodResumeButton.textContent = `âº Resume from ${formatTime(savedTime)}`;
+      elements.vodResumeButton.textContent = `Resume from ${formatTime(savedTime)}`;
   } else {
     elements.vodResumeButton.hidden = true;
   }
+
+  elements.vodFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites";
 
   elements.vodModal.hidden = false;
 }
@@ -1150,6 +1236,15 @@ elements.vodResumeButton.addEventListener("click", () => {
   const resume = Number(state.watchHistory[item.id]) || 0;
   closeVodModal();
   playVod(item, resume);
+});
+
+elements.vodFavoriteButton.addEventListener("click", () => {
+  const item = state.vod.selected;
+  if (!item) return;
+  if (state.favoriteMedia.has(item.id)) state.favoriteMedia.delete(item.id);
+  else state.favoriteMedia.add(item.id);
+  persistSet("favoriteMedia", state.favoriteMedia);
+  elements.vodFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites";
 });
 
 function resetVodPlayer() {
@@ -1323,17 +1418,17 @@ elements.vodPlayPauseBtn.addEventListener("click", () => {
 });
 
 elements.vodVideo.addEventListener("play", () => {
-  elements.vodPlayPauseBtn.textContent = "â¸";
+  elements.vodPlayPauseBtn.textContent = "Pause";
 });
 
 elements.vodVideo.addEventListener("pause", () => {
-  elements.vodPlayPauseBtn.textContent = "â¶";
+  elements.vodPlayPauseBtn.textContent = "Play";
   elements.vodPlayerControls.classList.add("active");
 });
 
 elements.vodMuteBtn.addEventListener("click", () => {
   elements.vodVideo.muted = !elements.vodVideo.muted;
-  elements.vodMuteBtn.textContent = elements.vodVideo.muted ? "ð" : "ð";
+  elements.vodMuteBtn.textContent = elements.vodVideo.muted ? "Muted" : "Vol";
   elements.vodVolumeSlider.value =
     elements.vodVideo.muted ? "0" : String(elements.vodVideo.volume);
 });
@@ -1342,7 +1437,7 @@ elements.vodVolumeSlider.addEventListener("input", (event) => {
   const volume = Number(event.target.value);
   elements.vodVideo.volume = volume;
   elements.vodVideo.muted = volume === 0;
-  elements.vodMuteBtn.textContent = volume === 0 ? "ð" : "ð";
+  elements.vodMuteBtn.textContent = volume === 0 ? "Muted" : "Vol";
 });
 
 elements.vodVideo.addEventListener("timeupdate", () => {
@@ -1390,6 +1485,155 @@ elements.vodFullscreenBtn.addEventListener("click", () => {
 });
 
 /* =====================================================
+   SERIES + DASHBOARD + FAVOURITES
+===================================================== */
+
+function seriesCategoryById(id) { return state.series.categories.find((category) => category.id === id); }
+
+function renderSeriesCategories() {
+  if (!elements.seriesCategories) return;
+  const rows = state.series.categories.map((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `vod-category-button${state.series.categoryId === category.id ? " active" : ""}`;
+    const title = document.createElement("span");
+    title.textContent = category.title;
+    button.append(title);
+    if (category.locked && !state.parentalUnlocked) {
+      const lock = document.createElement("span"); lock.className = "vod-lock"; lock.textContent = "LOCK"; button.append(lock);
+    }
+    button.addEventListener("click", () => {
+      const choose = () => selectSeriesCategory(category.id);
+      if (category.locked && !state.parentalUnlocked) requestParentalUnlock(choose); else choose();
+    });
+    return button;
+  });
+  if (!rows.length) { const note = document.createElement("p"); note.className = "list-note"; note.textContent = "No series categories are available."; rows.push(note); }
+  elements.seriesCategories.replaceChildren(...rows);
+}
+
+function renderSeriesGrid() {
+  const query = state.series.query.trim().toLowerCase();
+  const items = state.series.items.filter((item) => !query || [item.title, item.description, item.year, item.rating].filter(Boolean).join(" ").toLowerCase().includes(query));
+  const cards = items.map((item) => {
+    const card = document.createElement("button"); card.type = "button"; card.className = "series-card";
+    const poster = document.createElement("span"); poster.className = "series-poster"; setPoster(poster, item);
+    const play = document.createElement("span"); play.className = "series-card-play"; play.textContent = "PLAY";
+    const title = document.createElement("strong"); title.textContent = item.title;
+    const meta = document.createElement("small"); meta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
+    card.append(poster, play, title, meta);
+    card.addEventListener("click", () => openSeriesModal(item));
+    return card;
+  });
+  if (!cards.length) { const note = document.createElement("p"); note.className = "list-note"; note.textContent = query ? "No loaded series match your search." : "No series were returned for this category."; cards.push(note); }
+  elements.seriesGrid.replaceChildren(...cards);
+  const category = seriesCategoryById(state.series.categoryId);
+  elements.seriesCategoryTitle.textContent = category?.title || "Series";
+  elements.seriesCategoryMeta.textContent = `${state.series.items.length.toLocaleString()} series loaded`;
+}
+
+async function loadSeriesCategories() {
+  if (!elements.seriesCategories) return;
+  elements.seriesCategories.innerHTML = '<p class="list-note">Loading series categories...</p>';
+  try {
+    const result = await request("/api/series/categories");
+    state.series.categories = Array.isArray(result.categories) ? result.categories : [];
+    renderSeriesCategories();
+    const first = state.series.categories.find((category) => !category.locked) || state.series.categories[0];
+    if (first && !state.series.categoryId) selectSeriesCategory(first.id);
+  } catch (error) { elements.seriesCategories.textContent = error.message; }
+}
+
+async function selectSeriesCategory(categoryId) {
+  const category = seriesCategoryById(categoryId); if (!category) return;
+  if (category.locked && !state.parentalUnlocked) { requestParentalUnlock(() => selectSeriesCategory(categoryId)); return; }
+  state.series.categoryId = categoryId; state.series.page = 0; state.series.items = []; state.series.itemIds = new Set(); state.series.ended = false; state.series.loadToken += 1; state.series.query = elements.seriesSearch.value.trim();
+  elements.seriesGrid.innerHTML = '<p class="list-note">Loading series...</p>'; renderSeriesCategories();
+  await loadNextSeriesPage(true);
+}
+
+async function loadNextSeriesPage(reset = false) {
+  if (state.series.loading || state.series.ended || !state.series.categoryId) return;
+  const token = state.series.loadToken; const page = reset ? 0 : state.series.page; state.series.loading = true;
+  if (elements.seriesLoadSpinner) elements.seriesLoadSpinner.hidden = false;
+  try {
+    const result = await request(`/api/series/items?categoryId=${encodeURIComponent(state.series.categoryId)}&page=${page}`);
+    if (token !== state.series.loadToken) return;
+    const incoming = Array.isArray(result.items) ? result.items : []; let added = 0;
+    for (const raw of incoming) { if (!raw?.id || state.series.itemIds.has(raw.id)) continue; state.series.itemIds.add(raw.id); state.series.items.push({ ...raw, kind: "series", categoryId: state.series.categoryId }); added += 1; }
+    state.series.total = Number(result.total) || state.series.items.length; state.series.page = page + 1;
+    if (!incoming.length || !added || (state.series.total && state.series.items.length >= state.series.total)) state.series.ended = true;
+    renderSeriesGrid();
+  } catch (error) { if (token === state.series.loadToken && !state.series.items.length) elements.seriesGrid.textContent = error.message; state.series.ended = true; }
+  finally { if (token === state.series.loadToken) { state.series.loading = false; if (elements.seriesLoadSpinner) elements.seriesLoadSpinner.hidden = true; if (elements.seriesEndMessage) elements.seriesEndMessage.hidden = !state.series.ended; } }
+}
+
+function openSeriesModal(item) {
+  state.series.selected = item; state.watchMeta[item.id] = { ...item, mediaType: "series" }; saveWatchHistory();
+  elements.seriesFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites";
+  elements.seriesModalTitle.textContent = item.title; elements.seriesModalMeta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
+  elements.seriesModalDescription.textContent = item.description || "No description is available for this series."; setPoster(elements.seriesModalPoster, item);
+  elements.seriesSeasonSelect.replaceChildren(new Option("Loading seasons...", "")); elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading seasons...</p>'; elements.seriesModal.hidden = false;
+  request(`/api/series/seasons?seriesId=${encodeURIComponent(item.id)}`).then((result) => {
+    const seasons = Array.isArray(result.seasons) ? result.seasons : [];
+    elements.seriesSeasonSelect.replaceChildren(new Option("Select season", ""), ...seasons.map((season) => new Option(season.title || `Season ${season.number}`, String(season.number))));
+    if (seasons[0]) { elements.seriesSeasonSelect.value = String(seasons[0].number); loadSeriesEpisodes(seasons[0].number); } else elements.seriesEpisodes.innerHTML = '<p class="list-note">No seasons were returned.</p>';
+  }).catch((error) => { elements.seriesEpisodes.textContent = error.message; });
+}
+
+async function loadSeriesEpisodes(season) {
+  if (!state.series.selected) return; elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading episodes...</p>';
+  try {
+    const result = await request(`/api/series/episodes?seriesId=${encodeURIComponent(state.series.selected.id)}&season=${encodeURIComponent(season)}`);
+    const episodes = Array.isArray(result.episodes) ? result.episodes : [];
+    const list = episodes.map((episode, index) => { const button = document.createElement("button"); button.type = "button"; button.className = "series-episode-button"; button.textContent = `Episode ${episode.episode || index + 1} Â· ${episode.title}`; button.addEventListener("click", () => playSeriesEpisode(state.series.selected, season, episode)); return button; });
+    if (!list.length) { const note = document.createElement("p"); note.className = "list-note"; note.textContent = "No episodes were returned for this season."; list.push(note); }
+    elements.seriesEpisodes.replaceChildren(...list);
+  } catch (error) { elements.seriesEpisodes.textContent = error.message; }
+}
+
+async function playSeriesEpisode(series, season, episode) {
+  if (!series || !episode) return;
+  elements.seriesModal.hidden = true; elements.seriesPlayerSection.hidden = false; elements.seriesVideoLoading.hidden = false; state.watchMeta[series.id] = { ...series, mediaType: "series", episodeTitle: episode.title, season, episode: episode.episode }; saveWatchHistory();
+  if (state.series.hls) { try { state.series.hls.destroy(); } catch {} state.series.hls = null; }
+  stopMedia(elements.seriesVideo);
+  try {
+    const payload = await request("/api/series/play", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ seriesId: series.id, season, episodeId: episode.id }) });
+    if (payload.hls === true && window.Hls?.isSupported()) { const hls = new window.Hls({ enableWorker: false, lowLatencyMode: false }); hls.loadSource(payload.stream); hls.attachMedia(elements.seriesVideo); hls.on(window.Hls.Events.MANIFEST_PARSED, () => { elements.seriesVideoLoading.hidden = true; elements.seriesVideo.play().catch(() => {}); }); state.series.hls = hls; }
+    else { elements.seriesVideo.src = payload.stream; elements.seriesVideo.addEventListener("loadedmetadata", () => { elements.seriesVideoLoading.hidden = true; elements.seriesVideo.play().catch(() => {}); }, { once: true }); }
+  } catch (error) { elements.seriesVideoLoading.hidden = true; showNotice(`Episode could not play: ${error.message}`); }
+}
+
+function renderDashboard() {
+  if (!elements.continueWatching) return;
+  const entries = Object.entries(state.watchHistory).filter(([, time]) => Number(time) > 0).map(([id, time]) => ({ ...(state.watchMeta[id] || { id, title: "Saved title" }), time: Number(time) })).slice(0, 12);
+  const cards = entries.map((entry) => { const card = document.createElement("button"); card.type = "button"; card.className = "dashboard-card"; card.textContent = `${entry.title} Â· Resume ${formatTime(entry.time)}`; card.addEventListener("click", () => { setContentType(entry.mediaType === "series" ? "series" : "vod"); }); return card; });
+  if (!cards.length) { const note = document.createElement("div"); note.className = "dashboard-empty"; note.textContent = "Your in-progress movies and episodes will appear here."; cards.push(note); }
+  elements.continueWatching.replaceChildren(...cards);
+}
+
+function renderFavorites() {
+  if (!state.catalog) return;
+  const channels = state.catalog.channels.filter((channel) => state.favoriteChannels.has(channel.id));
+  const channelNodes = channels.map((channel) => { const button = document.createElement("button"); button.type = "button"; button.className = "favorite-channel-card"; button.textContent = channel.name; button.addEventListener("click", () => { setMode("live"); playLive(channel); }); return button; });
+  if (!channelNodes.length) { const note = document.createElement("div"); note.className = "dashboard-empty"; note.textContent = "No favourite channels yet."; channelNodes.push(note); }
+  elements.favoriteChannelsGrid.replaceChildren(...channelNodes);
+  const media = Object.values(state.watchMeta).filter((item) => state.favoriteMedia.has(item.id));
+  const mediaNodes = media.map((item) => { const button = document.createElement("button"); button.type = "button"; button.className = "dashboard-card"; button.textContent = item.title; button.addEventListener("click", () => setContentType(item.mediaType === "series" ? "series" : "vod")); return button; });
+  if (!mediaNodes.length) { const note = document.createElement("div"); note.className = "dashboard-empty"; note.textContent = "No favourite movies or series yet."; mediaNodes.push(note); }
+  elements.favoriteMediaGrid.replaceChildren(...mediaNodes);
+}
+
+elements.seriesSeasonSelect?.addEventListener("change", (event) => { if (event.target.value) loadSeriesEpisodes(event.target.value); });
+elements.seriesClose?.addEventListener("click", () => { elements.seriesModal.hidden = true; });
+elements.seriesFavoriteButton?.addEventListener("click", () => { const item = state.series.selected; if (!item) return; if (state.favoriteMedia.has(item.id)) state.favoriteMedia.delete(item.id); else state.favoriteMedia.add(item.id); persistSet("favoriteMedia", state.favoriteMedia); elements.seriesFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites"; });
+elements.seriesModal?.addEventListener("click", (event) => { if (event.target === elements.seriesModal) elements.seriesModal.hidden = true; });
+elements.closeSeriesPlayerButton?.addEventListener("click", () => { if (state.series.hls) { try { state.series.hls.destroy(); } catch {} state.series.hls = null; } stopMedia(elements.seriesVideo); elements.seriesPlayerSection.hidden = true; });
+document.querySelectorAll(".content-type-button").forEach((button) => button.addEventListener("click", () => setContentType(button.dataset.contentType)));
+elements.seriesSearch?.addEventListener("input", () => { state.series.query = elements.seriesSearch.value; renderSeriesGrid(); });
+if (elements.seriesLoadMore) new IntersectionObserver((entries) => { if (entries.some((entry) => entry.isIntersecting)) loadNextSeriesPage(false); }, { rootMargin: "500px 0px" }).observe(elements.seriesLoadMore);
+
+/* =====================================================
    FULLSCREEN / SEARCH / EDIT
 ===================================================== */
 
@@ -1413,14 +1657,14 @@ elements.vodSearch.addEventListener("input", () => {
 elements.editGroupsButton.addEventListener("click", () => {
   state.editingGroups = !state.editingGroups;
   elements.editGroupsButton.classList.toggle("active", state.editingGroups);
-  elements.editGroupsButton.textContent = state.editingGroups ? "Done" : "â Edit";
+  elements.editGroupsButton.textContent = state.editingGroups ? "Done" : "Show / edit";
   renderCategories();
 });
 
 elements.editChannelsButton.addEventListener("click", () => {
   state.editingChannels = !state.editingChannels;
   elements.editChannelsButton.classList.toggle("active", state.editingChannels);
-  elements.editChannelsButton.textContent = state.editingChannels ? "Done" : "â Edit";
+  elements.editChannelsButton.textContent = state.editingChannels ? "Done" : "Show / edit";
   renderChannels();
 });
 
@@ -1463,7 +1707,7 @@ elements.updatePinButton.addEventListener("click", async () => {
   }
 
   elements.updatePinButton.disabled = true;
-  elements.updatePinButton.textContent = "Updatingâ¦";
+  elements.updatePinButton.textContent = "Updating...";
 
   try {
     const serviceId =
@@ -1544,7 +1788,7 @@ elements.setupForm.addEventListener("submit", async (event) => {
   elements.mac.value = mac;
   elements.setupError.hidden = true;
   elements.connectButton.disabled = true;
-  elements.connectButton.textContent = "Savingâ¦";
+  elements.connectButton.textContent = "Saving...";
 
   try {
     await request("/api/config", {
