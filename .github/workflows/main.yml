@@ -5,9 +5,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   windows-installer:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -16,14 +20,14 @@ jobs:
           node-version: 22
 
       - name: Install build tools
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Build Netplus installer
-        run: npm run desktop:make -- --publish never
+        run: npm run desktop:make
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: Netplus-IPTV-Player-Setup
-          path: release/*.exe
+          path: release/Netplus-IPTV-Player-Setup-*.exe
           if-no-files-found: error
