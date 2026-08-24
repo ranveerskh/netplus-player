@@ -1,3 +1,0 @@
-NetPlus IPTV Player
-Version: 1.5.1
-Build: Combined Movies & Series VOD + Dashboard UI
