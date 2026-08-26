@@ -1,12 +1,12 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.5.3 Direct VOD Playback + Fast Live Renewal
+ VERSION: 1.5.5 Playback Relay / Session Fixes
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.5.3";
+const APP_VERSION = "1.5.5";
 
 const state = {
   catalog: null,
@@ -46,6 +46,7 @@ const state = {
     loadToken: 0,
     hls: null,
     retryToken: 0,
+    linkRecoveries: 0,
     categoryScrollTop: 0,
   },
 
@@ -201,7 +202,7 @@ async function request(url, options = {}) {
   return payload;
 }
 
-/* v1.5.3: browser/HLS events are sent without any portal URL,
+/* v1.5.5: browser/HLS events are sent without any portal URL,
    MAC, token, cookie, or user-entered credentials. */
 function recordClientDiagnostic(event, details = {}) {
   fetch("/api/diagnostics/event", {
@@ -623,7 +624,7 @@ function renderChannels() {
     } else {
       toggle.className =
         `favorite-toggle${state.favoriteChannels.has(channel.id) ? " is-favorite" : ""}`;
-      toggle.textContent = "★";
+      toggle.textContent = "â";
     }
 
     toggle.addEventListener("click", (event) => {
@@ -654,7 +655,7 @@ function renderChannels() {
 
     const meta = document.createElement("small");
     meta.textContent =
-      `${channel.number ? `Channel ${channel.number}` : "Live"}${channel.hd ? " · HD" : ""}`;
+      `${channel.number ? `Channel ${channel.number}` : "Live"}${channel.hd ? " Â· HD" : ""}`;
 
     copy.append(name, meta);
 
@@ -676,7 +677,7 @@ function renderChannels() {
     empty.className = "list-note";
     empty.textContent =
       state.category === "favorites"
-        ? "No favorite channels yet. Tap ★ beside a channel to add it."
+        ? "No favorite channels yet. Tap â beside a channel to add it."
         : "No channels found.";
     rows.push(empty);
   } else if (filtered.length > 400) {
@@ -1188,7 +1189,7 @@ function renderVodGrid() {
 
     const meta = document.createElement("small");
     meta.textContent =
-      [isSeries ? "Series" : "Movie", item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ");
+      [isSeries ? "Series" : "Movie", item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ");
 
     const badge = document.createElement("span");
     badge.className = `vod-type-badge ${isSeries ? "is-series" : "is-movie"}`;
@@ -1216,8 +1217,8 @@ function renderVodGrid() {
 
   elements.vodCategoryMeta.textContent =
     state.vod.total > 0
-      ? `${state.vod.items.length.toLocaleString()} loaded · ${state.vod.total.toLocaleString()} available`
-      : `${state.vod.items.length.toLocaleString()} titles loaded · ${filterLabel}`;
+      ? `${state.vod.items.length.toLocaleString()} loaded Â· ${state.vod.total.toLocaleString()} available`
+      : `${state.vod.items.length.toLocaleString()} titles loaded Â· ${filterLabel}`;
 }
 
 async function loadVodCategories() {
@@ -1351,8 +1352,8 @@ async function openVodModal(item) {
   saveWatchHistory();
 
   elements.vodModalTitle.textContent = item.title;
-  elements.vodModalMeta.textContent = "Loading provider details…";
-  elements.vodModalDescription.textContent = item.description || "Loading title details…";
+  elements.vodModalMeta.textContent = "Loading provider detailsâ¦";
+  elements.vodModalDescription.textContent = item.description || "Loading title detailsâ¦";
   setPoster(elements.vodModalPoster, item);
   elements.vodModal.hidden = false;
 
@@ -1382,7 +1383,7 @@ async function openVodModal(item) {
 function populateVodModal(item) {
   elements.vodModalTitle.textContent = item.title;
   elements.vodModalMeta.textContent =
-    [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "On demand";
+    [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "On demand";
   elements.vodModalDescription.textContent =
     item.description || "No description is available for this title.";
 
@@ -1440,7 +1441,69 @@ function resetVodPlayer() {
   elements.vodTimeDisplay.textContent = "0:00 / 0:00";
 }
 
-function attachVodHls(stream, item, resumeFrom, token) {
+function renewVodLink(reason, retry) {
+  if (typeof retry !== "function") return;
+  if (state.vod.linkRecoveries >= 2) {
+    showNotice("Playback stopped because the provider link could not recover.");
+    return;
+  }
+
+  state.vod.linkRecoveries += 1;
+  recordClientDiagnostic("client.vod_link_renewal", {
+    reason,
+    attempt: state.vod.linkRecoveries,
+  });
+  showNotice("Refreshing the movie linkâ¦");
+  setTimeout(retry, 350);
+}
+
+function attachVodNative(stream, item, resumeFrom, token, retry) {
+  const video = elements.vodVideo;
+  let recoveryTimer = null;
+  let recovered = false;
+
+  const clearRecoveryTimer = () => {
+    if (recoveryTimer) clearTimeout(recoveryTimer);
+    recoveryTimer = null;
+  };
+
+  const requestRecovery = (reason) => {
+    if (token !== state.vod.retryToken || recovered) return;
+    recovered = true;
+    clearRecoveryTimer();
+    renewVodLink(reason, retry);
+  };
+
+  const scheduleRecovery = (reason) => {
+    clearRecoveryTimer();
+    recoveryTimer = setTimeout(() => requestRecovery(reason), 12_000);
+  };
+
+  video.addEventListener("error", () => requestRecovery("native-error"), { once: true });
+  video.addEventListener("stalled", () => scheduleRecovery("native-stalled"), { once: true });
+  video.addEventListener("waiting", () => scheduleRecovery("native-waiting"), { once: true });
+  video.addEventListener("playing", clearRecoveryTimer);
+
+  video.addEventListener("loadedmetadata", () => {
+    if (token !== state.vod.retryToken) return;
+
+    if (
+      resumeFrom > 0 &&
+      Number.isFinite(video.duration) &&
+      resumeFrom < video.duration - 2
+    ) {
+      video.currentTime = resumeFrom;
+    }
+
+    elements.vodVideoLoading.hidden = true;
+    elements.vodPlayerControls.hidden = false;
+    video.play().catch(() => {});
+  }, { once: true });
+
+  video.src = stream;
+}
+
+function attachVodHls(stream, item, resumeFrom, token, retry) {
   const hls = new window.Hls({
     enableWorker: true,
     lowLatencyMode: false,
@@ -1456,6 +1519,15 @@ function attachVodHls(stream, item, resumeFrom, token) {
   });
 
   state.vod.hls = hls;
+  let networkRecoveries = 0;
+  let mediaRecoveries = 0;
+  let renewalRequested = false;
+
+  const requestRenewal = (reason) => {
+    if (renewalRequested || token !== state.vod.retryToken) return;
+    renewalRequested = true;
+    renewVodLink(reason, retry);
+  };
 
   hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
     if (token !== state.vod.retryToken) return;
@@ -1493,27 +1565,63 @@ function attachVodHls(stream, item, resumeFrom, token) {
       ...hlsDiagnosticDetails(data),
     });
 
+    const responseCode = Number(data?.response?.code || 0);
+    const details = String(data.details || data.reason || "");
+
+    if (
+      [401, 403, 410, 502].includes(responseCode) ||
+      /manifestParsingError|no EXTM3U delimiter/i.test(details)
+    ) {
+      /* A hidden HLS URL may actually be progressive media. Try native once
+         when there is no HTTP rejection; otherwise request a fresh link. */
+      if (
+        responseCode === 0 &&
+        /manifestParsingError|no EXTM3U delimiter/i.test(details) &&
+        !renewalRequested
+      ) {
+        renewalRequested = true;
+        try { hls.destroy(); } catch {}
+        if (state.vod.hls === hls) state.vod.hls = null;
+        attachVodNative(stream, item, resumeFrom, token, retry);
+      } else {
+        requestRenewal(responseCode ? `http-${responseCode}` : "invalid-manifest");
+      }
+      return;
+    }
+
     if (!data.fatal) return;
 
     if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR) {
-      try { hls.startLoad(-1); } catch {}
+      if (networkRecoveries < 2) {
+        networkRecoveries += 1;
+        try { hls.startLoad(-1); } catch { requestRenewal("network-retry-failed"); }
+      } else {
+        requestRenewal("network-retries-exhausted");
+      }
       return;
     }
 
     if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR) {
-      try { hls.recoverMediaError(); } catch {}
+      if (mediaRecoveries < 2) {
+        mediaRecoveries += 1;
+        try { hls.recoverMediaError(); } catch { requestRenewal("media-recovery-failed"); }
+      } else {
+        requestRenewal("media-recovery-exhausted");
+      }
       return;
     }
 
-    showNotice("Movie playback stopped because the stream could not recover.");
+    requestRenewal("fatal-hls-error");
   });
 
   hls.loadSource(stream);
   hls.attachMedia(elements.vodVideo);
 }
 
-async function playVod(item, resumeFrom = 0, qualityId = "") {
+async function playVod(item, resumeFrom = 0, qualityId = "", isRenewal = false) {
   if (!item) return;
+
+  if (!isRenewal) state.vod.linkRecoveries = 0;
 
   const category = vodCategoryById(item.categoryId);
 
@@ -1547,33 +1655,17 @@ async function playVod(item, resumeFrom = 0, qualityId = "") {
 
     if (token !== state.vod.retryToken || state.vod.selected?.id !== item.id) return;
 
-    /*
-      Relay paths do not expose the original extension.
-      Try HLS.js first only when server explicitly marks HLS.
-      Otherwise native <video> handles MP4/TS/etc.
-    */
+    /* The relay hides the provider URL. The server marks opaque links as
+       hls-or-auto, and attachVodHls can fall back to native media if the
+       response turns out to be progressive. */
+    const retry = () => playVod(item, resumeFrom, qualityId, true);
+
     if (payload.hls === true && window.Hls?.isSupported()) {
-      attachVodHls(payload.stream, item, resumeFrom, token);
+      attachVodHls(payload.stream, item, resumeFrom, token, retry);
       return;
     }
 
-    elements.vodVideo.src = payload.stream;
-
-    elements.vodVideo.addEventListener("loadedmetadata", () => {
-      if (token !== state.vod.retryToken) return;
-
-      if (
-        resumeFrom > 0 &&
-        Number.isFinite(elements.vodVideo.duration) &&
-        resumeFrom < elements.vodVideo.duration - 2
-      ) {
-        elements.vodVideo.currentTime = resumeFrom;
-      }
-
-      elements.vodVideoLoading.hidden = true;
-      elements.vodPlayerControls.hidden = false;
-      elements.vodVideo.play().catch(() => {});
-    }, { once: true });
+    attachVodNative(payload.stream, item, resumeFrom, token, retry);
 
   } catch (error) {
     if (token === state.vod.retryToken) {
@@ -1697,12 +1789,12 @@ function openCombinedSeriesModal(item, detail = {}) {
   state.watchMeta[item.id] = { ...state.series.selected, mediaType: "series" };
   saveWatchHistory();
   elements.seriesModalTitle.textContent = item.title;
-  elements.seriesModalMeta.textContent = [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "Series";
+  elements.seriesModalMeta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
   elements.seriesModalDescription.textContent = item.description || "No description is available for this series.";
   elements.seriesFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites";
   setPoster(elements.seriesModalPoster, item);
-  elements.seriesSeasonSelect.replaceChildren(new Option("Loading seasons…", ""));
-  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading seasons…</p>';
+  elements.seriesSeasonSelect.replaceChildren(new Option("Loading seasonsâ¦", ""));
+  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading seasonsâ¦</p>';
   elements.seriesModal.hidden = false;
 
   const localSeasons = Array.isArray(detail.seasons) ? detail.seasons : [];
@@ -1729,7 +1821,7 @@ function openCombinedSeriesModal(item, detail = {}) {
 async function loadCombinedSeriesEpisodes(season) {
   const series = state.series.selected;
   if (!series) return;
-  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading episodes…</p>';
+  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading episodesâ¦</p>';
   try {
     const result = await request(`/api/vod/episodes?categoryId=${encodeURIComponent(series.categoryId)}&itemId=${encodeURIComponent(series.id)}&season=${encodeURIComponent(season)}`);
     const episodes = Array.isArray(result.episodes) ? result.episodes : [];
@@ -1737,7 +1829,7 @@ async function loadCombinedSeriesEpisodes(season) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "series-episode-button";
-      button.textContent = `Episode ${episode.episode || index + 1} · ${episode.title}`;
+      button.textContent = `Episode ${episode.episode || index + 1} Â· ${episode.title}`;
       button.addEventListener("click", () => openQualityModal({
         kind: "episode",
         series,
@@ -1766,14 +1858,14 @@ async function openQualityModal({ kind, item, series, season, episode, resumeFro
 
   const isEpisode = kind === "episode";
   elements.qualityModalTitle.textContent = isEpisode
-    ? `${series.title} · ${episode.title}`
+    ? `${series.title} Â· ${episode.title}`
     : item.title;
   elements.qualityModalDescription.textContent = isEpisode
-    ? `Season ${season} · Episode ${episode.episode || ""}. Choose a quality before playback.`
+    ? `Season ${season} Â· Episode ${episode.episode || ""}. Choose a quality before playback.`
     : "Choose a quality before playback.";
   elements.qualityOptions.replaceChildren(Object.assign(document.createElement("p"), {
     className: "list-note",
-    textContent: "Loading quality options…",
+    textContent: "Loading quality optionsâ¦",
   }));
 
   closeVodModal();
@@ -1820,8 +1912,15 @@ elements.qualityModal?.addEventListener("click", (event) => {
   if (event.target === elements.qualityModal) closeQualityModal();
 });
 
-async function playCombinedEpisode(series, season, episode, qualityId = "") {
+async function playCombinedEpisode(
+  series,
+  season,
+  episode,
+  qualityId = "",
+  isRenewal = false
+) {
   if (!series || !episode) return;
+  if (!isRenewal) state.vod.linkRecoveries = 0;
   const item = { ...series, kind: "series", episodeTitle: episode.title, season: Number(season), episode: episode.episode };
   state.vod.selected = item;
   state.watchMeta[series.id] = { ...item, mediaType: "series" };
@@ -1830,7 +1929,7 @@ async function playCombinedEpisode(series, season, episode, qualityId = "") {
   elements.vodPlayerSection.hidden = false;
   elements.vodVideoLoading.hidden = false;
   elements.vodPlayerControls.hidden = true;
-  elements.vodControlTitle.textContent = `${series.title} · ${episode.title}`;
+  elements.vodControlTitle.textContent = `${series.title} Â· ${episode.title}`;
   resetVodPlayer();
   elements.vodPlayerSection.hidden = false;
   elements.vodVideoLoading.hidden = false;
@@ -1847,15 +1946,11 @@ async function playCombinedEpisode(series, season, episode, qualityId = "") {
       }),
     });
     if (token !== state.vod.retryToken || state.vod.selected?.id !== series.id) return;
+    const retry = () => playCombinedEpisode(series, season, episode, qualityId, true);
     if (payload.hls === true && window.Hls?.isSupported()) {
-      attachVodHls(payload.stream, item, 0, token);
+      attachVodHls(payload.stream, item, 0, token, retry);
     } else {
-      elements.vodVideo.src = payload.stream;
-      elements.vodVideo.addEventListener("loadedmetadata", () => {
-        if (token !== state.vod.retryToken) return;
-        elements.vodVideoLoading.hidden = true; elements.vodPlayerControls.hidden = false;
-        elements.vodVideo.play().catch(() => {});
-      }, { once: true });
+      attachVodNative(payload.stream, item, 0, token, retry);
     }
   } catch (error) {
     if (token === state.vod.retryToken) { elements.vodVideoLoading.hidden = true; showNotice(`Episode could not play: ${error.message}`); }
@@ -1900,7 +1995,7 @@ function renderSeriesGrid() {
     play.className = "series-card-play series-action";
     play.textContent = "SEASONS";
     const title = document.createElement("strong"); title.textContent = item.title;
-    const meta = document.createElement("small"); meta.textContent = [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "Series";
+    const meta = document.createElement("small"); meta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
     card.append(poster, play, title, meta);
     card.addEventListener("click", () => openSeriesModal(item));
     return card;
@@ -1951,7 +2046,7 @@ async function loadNextSeriesPage(reset = false) {
 function openSeriesModal(item) {
   state.series.selected = item; state.watchMeta[item.id] = { ...item, mediaType: "series" }; saveWatchHistory();
   elements.seriesFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites";
-  elements.seriesModalTitle.textContent = item.title; elements.seriesModalMeta.textContent = [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "Series";
+  elements.seriesModalTitle.textContent = item.title; elements.seriesModalMeta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
   elements.seriesModalDescription.textContent = item.description || "No description is available for this series."; setPoster(elements.seriesModalPoster, item);
   elements.seriesSeasonSelect.replaceChildren(new Option("Loading seasons...", "")); elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading seasons...</p>'; elements.seriesModal.hidden = false;
   request(`/api/series/seasons?seriesId=${encodeURIComponent(item.id)}`).then((result) => {
@@ -1966,7 +2061,7 @@ async function loadSeriesEpisodes(season) {
   try {
     const result = await request(`/api/series/episodes?seriesId=${encodeURIComponent(state.series.selected.id)}&season=${encodeURIComponent(season)}`);
     const episodes = Array.isArray(result.episodes) ? result.episodes : [];
-    const list = episodes.map((episode, index) => { const button = document.createElement("button"); button.type = "button"; button.className = "series-episode-button"; button.textContent = `Episode ${episode.episode || index + 1} · ${episode.title}`; button.addEventListener("click", () => playSeriesEpisode(state.series.selected, season, episode)); return button; });
+    const list = episodes.map((episode, index) => { const button = document.createElement("button"); button.type = "button"; button.className = "series-episode-button"; button.textContent = `Episode ${episode.episode || index + 1} Â· ${episode.title}`; button.addEventListener("click", () => playSeriesEpisode(state.series.selected, season, episode)); return button; });
     if (!list.length) { const note = document.createElement("p"); note.className = "list-note"; note.textContent = "No episodes were returned for this season."; list.push(note); }
     elements.seriesEpisodes.replaceChildren(...list);
   } catch (error) { elements.seriesEpisodes.textContent = error.message; }
@@ -2003,7 +2098,7 @@ function renderDashboard() {
     const poster = document.createElement("span"); poster.className = "dashboard-card-poster"; setPoster(poster, entry);
     const copy = document.createElement("span"); copy.className = "dashboard-card-copy";
     const title = document.createElement("strong"); title.textContent = entry.title || "Saved title";
-    const meta = document.createElement("small"); meta.textContent = `${entry.mediaType === "series" ? "Series" : "Movie"} · Resume ${formatTime(entry.time)}`;
+    const meta = document.createElement("small"); meta.textContent = `${entry.mediaType === "series" ? "Series" : "Movie"} Â· Resume ${formatTime(entry.time)}`;
     copy.append(title, meta); card.append(poster, copy);
     card.addEventListener("click", () => {
       setVodFilter(entry.mediaType === "series" ? "series" : "movie");
@@ -2196,12 +2291,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.5.3.json";
+  link.download = "netplus-diagnostics-v1.5.5.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.5.3.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.5.5.json file here.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
