@@ -1,26 +1,30 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.5.3 Direct VOD Playback + Fast Live Renewal
+ VERSION: 1.5.5 Playback Relay / Session Fixes
  File: server.cjs
 =========================================================
 */
 
 const http = require("node:http");
+const dns = require("node:dns");
 const fs = require("node:fs");
 const path = require("node:path");
 const { randomBytes, scryptSync, timingSafeEqual } = require("node:crypto");
 const { Readable } = require("node:stream");
 const { spawn } = require("node:child_process");
 
+/* IPTV/CDN hosts used by the provider can publish broken IPv6 routes. */
+try { dns.setDefaultResultOrder("ipv4first"); } catch {}
+
 const HOST = "127.0.0.1";
 const PORT = 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.5.3";
+const APP_VERSION = "1.5.5";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.5.3.json"
+  "netplus-diagnostics-v1.5.5.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 
@@ -32,6 +36,8 @@ const SERVICES = {
 const MAG_USER_AGENT =
   "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG250 stbapp ver: 4 rev: 1812 Mobile Safari/533.3";
 const X_USER_AGENT = "Model: MAG250; Link: WiFi";
+/* STBEmu's native media path identifies itself differently from the portal UI. */
+const MEDIA_USER_AGENT = "Lavf53.32.100";
 
 let catalogCache = null;
 let catalogPromise = null;
@@ -71,7 +77,7 @@ function redactUrl(value) {
   const urlMatch = raw.match(/(?:https?|rtsp|udp):\/\/[^\s"']+/i);
 
   if (!urlMatch) {
-    return raw.length > 160 ? `${raw.slice(0, 160)}…` : raw;
+    return raw.length > 160 ? `${raw.slice(0, 160)}â¦` : raw;
   }
 
   try {
@@ -287,9 +293,65 @@ function saveConfig(serviceId, macInput, parentalPin) {
   relayTicketsByKey.clear();
 }
 
+function extractSetCookiePairs(headers) {
+  if (!headers) return [];
+
+  let values = [];
+
+  try {
+    if (typeof headers.getSetCookie === "function") {
+      values = headers.getSetCookie();
+    }
+  } catch {}
+
+  if (!Array.isArray(values) || values.length === 0) {
+    const combined = headers.get?.("set-cookie") || "";
+    values = combined ? [combined] : [];
+  }
+
+  const pairs = [];
+
+  for (const value of values) {
+    /* Node versions without getSetCookie() may join multiple cookies. */
+    const chunks = String(value || "").split(/,(?=\s*[^;,=\s]+=[^;,]*)/);
+
+    for (const chunk of chunks) {
+      const pair = String(chunk).split(";", 1)[0].trim();
+      if (/^[^=;\s]+=[^;]*$/.test(pair)) pairs.push(pair);
+    }
+  }
+
+  return pairs;
+}
+
+function mergeCookieHeader(existing, headersOrPairs) {
+  const jar = new Map();
+
+  for (const part of String(existing || "").split(";")) {
+    const pair = part.trim();
+    const index = pair.indexOf("=");
+    if (index > 0) jar.set(pair.slice(0, index).trim(), pair.slice(index + 1));
+  }
+
+  const pairs = Array.isArray(headersOrPairs)
+    ? headersOrPairs
+    : extractSetCookiePairs(headersOrPairs);
+
+  for (const pair of pairs) {
+    const index = String(pair).indexOf("=");
+    if (index > 0) {
+      jar.set(String(pair).slice(0, index).trim(), String(pair).slice(index + 1));
+    }
+  }
+
+  return [...jar.entries()]
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
+}
+
 function loadBalancerCookie(headers) {
-  const setCookie = headers.get("set-cookie") || "";
-  return setCookie.match(/(?:^|[,;]\s*)(__cflb=[^;,\s]+)/i)?.[1] || "";
+  return extractSetCookiePairs(headers)
+    .find((pair) => /^__cflb=/i.test(pair)) || "";
 }
 
 async function portalRequest(params, session) {
@@ -348,6 +410,11 @@ async function portalRequest(params, session) {
       });
     }
     throw new PlayerError(`Portal returned status ${response.status}.`);
+  }
+
+  /* Keep every provider session cookie, not only Cloudflare's __cflb. */
+  if (session) {
+    session.cookie = mergeCookieHeader(session.cookie, response.headers);
   }
 
   const text = await response.text();
@@ -409,11 +476,9 @@ async function createSession() {
     throw new PlayerError("Portal did not authorize this MAC address.", 401);
   }
 
-  const extraCookie = loadBalancerCookie(handshake.headers);
-
   const session = {
     token,
-    cookie: [config.baseCookie, extraCookie].filter(Boolean).join("; "),
+    cookie: mergeCookieHeader(config.baseCookie, handshake.headers),
   };
 
   const profile = await portalRequest(
@@ -2255,7 +2320,8 @@ function createRelayTarget(
   url,
   lifetimeMs = 2 * 60 * 60_000,
   context = "unknown",
-  stable = false
+  stable = false,
+  credentials = null
 ) {
   if (typeof lifetimeMs === "string") {
     context = lifetimeMs;
@@ -2286,6 +2352,12 @@ function createRelayTarget(
     expiresAt: now + lifetimeMs,
     context,
     key,
+    credentials: credentials
+      ? {
+          cookie: String(credentials.cookie || ""),
+          authorization: String(credentials.authorization || ""),
+        }
+      : null,
   });
 
   if (key) relayTicketsByKey.set(key, ticket);
@@ -2293,18 +2365,38 @@ function createRelayTarget(
   return `/stream/${ticket}`;
 }
 
-function rewriteUriAttributes(line, baseUrl, context) {
+function relayCredentials(session) {
+  if (!session) return null;
+
+  return {
+    cookie: session.cookie || "",
+    authorization: session.token ? `Bearer ${session.token}` : "",
+  };
+}
+
+function createStreamRelayTarget(url, context, session) {
+  return createRelayTarget(
+    url,
+    2 * 60 * 60_000,
+    context,
+    false,
+    relayCredentials(session)
+  );
+}
+
+function rewriteUriAttributes(line, baseUrl, context, credentials) {
   return line.replace(/URI="([^"]+)"/g, (_match, uri) => {
     return `URI="${createRelayTarget(
       new URL(uri, baseUrl).toString(),
       2 * 60 * 60_000,
       `${context}:manifest-uri`,
-      true
+      true,
+      credentials
     )}"`;
   });
 }
 
-function rewriteManifest(manifest, baseUrl, context) {
+function rewriteManifest(manifest, baseUrl, context, credentials) {
   return manifest
     .split(/\r?\n/)
     .map((line) => {
@@ -2312,14 +2404,15 @@ function rewriteManifest(manifest, baseUrl, context) {
 
       if (!trimmed) return line;
       if (trimmed.startsWith("#")) {
-        return rewriteUriAttributes(line, baseUrl, context);
+        return rewriteUriAttributes(line, baseUrl, context, credentials);
       }
 
       return createRelayTarget(
         new URL(trimmed, baseUrl).toString(),
         2 * 60 * 60_000,
         `${context}:segment`,
-        true
+        true,
+        credentials
       );
     })
     .join("\n");
@@ -2353,7 +2446,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.5.3.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.5.5.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -2422,6 +2515,14 @@ function isLikelyHls(url, contentType = "") {
   );
 }
 
+/* Relay URLs hide the provider's original extension. Unknown HTTP streams
+   should be tried through HLS.js first; explicit progressive files stay native. */
+function shouldTryHlsFirst(url) {
+  return !/\.(?:mp4|m4v|webm|ogv|ogg|mp3|aac|wav)(?:$|\?)/i.test(
+    String(url || "")
+  );
+}
+
 function isValidHlsManifest(body) {
   return String(body || "")
     .replace(/^\uFEFF/, "")
@@ -2439,10 +2540,18 @@ async function relay(req, res, ticket) {
 
   const headers = {
     Accept: "*/*",
-    "User-Agent": MAG_USER_AGENT,
+    "User-Agent": MEDIA_USER_AGENT,
     "X-User-Agent": X_USER_AGENT,
-    Referer: target.url,
   };
+
+  /* The portal API session is also needed by many CDN stream links. */
+  if (target.credentials?.cookie) {
+    headers.Cookie = target.credentials.cookie;
+  }
+
+  if (target.credentials?.authorization) {
+    headers.Authorization = target.credentials.authorization;
+  }
 
   if (req.headers.range) {
     headers.Range = req.headers.range;
@@ -2524,7 +2633,12 @@ async function relay(req, res, ticket) {
       );
     }
 
-    const body = rewriteManifest(upstreamBody, upstream.url, target.context);
+    const body = rewriteManifest(
+      upstreamBody,
+      upstream.url,
+      target.context,
+      target.credentials
+    );
 
     return text(
       res,
@@ -2800,14 +2914,16 @@ async function handle(req, res) {
 
     /*
       Always request a fresh portal create_link on each recovery.
-      app.js v1.5.3 calls this again immediately when a short-lived IPTV URL
+      app.js v1.5.5 calls this again immediately when a short-lived IPTV URL
       returns 401/403/410/502 or stops returning a valid HLS manifest.
     */
     const streamUrl = await getStreamUrl(body.channelId);
+    const session = (await activeCatalog()).session;
 
     return json(res, 200, {
-      stream: createRelayTarget(streamUrl, "live"),
-      hls: /\.m3u8(?:$|\?)/i.test(streamUrl),
+      stream: createStreamRelayTarget(streamUrl, "live", session),
+      hls: shouldTryHlsFirst(streamUrl),
+      mediaType: shouldTryHlsFirst(streamUrl) ? "hls-or-auto" : "progressive",
     });
   }
 
@@ -2829,10 +2945,12 @@ async function handle(req, res) {
       body.itemId,
       typeof body.qualityId === "string" ? body.qualityId : ""
     );
+    const session = (await activeCatalog()).session;
 
     return json(res, 200, {
-      stream: createRelayTarget(streamUrl, "vod"),
-      hls: /\.m3u8(?:$|\?)/i.test(streamUrl),
+      stream: createStreamRelayTarget(streamUrl, "vod", session),
+      hls: shouldTryHlsFirst(streamUrl),
+      mediaType: shouldTryHlsFirst(streamUrl) ? "hls-or-auto" : "progressive",
     });
   }
 
@@ -2858,10 +2976,12 @@ async function handle(req, res) {
       String(body.episodeId),
       typeof body.qualityId === "string" ? body.qualityId : ""
     );
+    const session = (await activeCatalog()).session;
 
     return json(res, 200, {
-      stream: createRelayTarget(streamUrl, "vod"),
-      hls: /\.m3u8(?:$|\?)/i.test(streamUrl),
+      stream: createStreamRelayTarget(streamUrl, "vod", session),
+      hls: shouldTryHlsFirst(streamUrl),
+      mediaType: shouldTryHlsFirst(streamUrl) ? "hls-or-auto" : "progressive",
     });
   }
 
@@ -2948,10 +3068,12 @@ async function handle(req, res) {
       Number(body.season),
       String(body.episodeId)
     );
+    const session = (await activeCatalog()).session;
 
     return json(res, 200, {
-      stream: createRelayTarget(streamUrl, "series"),
-      hls: /\.m3u8(?:$|\?)/i.test(streamUrl),
+      stream: createStreamRelayTarget(streamUrl, "series", session),
+      hls: shouldTryHlsFirst(streamUrl),
+      mediaType: shouldTryHlsFirst(streamUrl) ? "hls-or-auto" : "progressive",
     });
   }
 
