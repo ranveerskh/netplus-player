@@ -1,12 +1,12 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.5.5 Playback Relay / Session Fixes
+ VERSION: 1.5.6 Redirect Cookie-Jar Fix
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.5.5";
+const APP_VERSION = "1.5.6";
 
 const state = {
   catalog: null,
@@ -202,7 +202,7 @@ async function request(url, options = {}) {
   return payload;
 }
 
-/* v1.5.5: browser/HLS events are sent without any portal URL,
+/* v1.5.6: browser/HLS events are sent without any portal URL,
    MAC, token, cookie, or user-entered credentials. */
 function recordClientDiagnostic(event, details = {}) {
   fetch("/api/diagnostics/event", {
@@ -624,7 +624,7 @@ function renderChannels() {
     } else {
       toggle.className =
         `favorite-toggle${state.favoriteChannels.has(channel.id) ? " is-favorite" : ""}`;
-      toggle.textContent = "â";
+      toggle.textContent = "★";
     }
 
     toggle.addEventListener("click", (event) => {
@@ -655,7 +655,7 @@ function renderChannels() {
 
     const meta = document.createElement("small");
     meta.textContent =
-      `${channel.number ? `Channel ${channel.number}` : "Live"}${channel.hd ? " Â· HD" : ""}`;
+      `${channel.number ? `Channel ${channel.number}` : "Live"}${channel.hd ? " · HD" : ""}`;
 
     copy.append(name, meta);
 
@@ -677,7 +677,7 @@ function renderChannels() {
     empty.className = "list-note";
     empty.textContent =
       state.category === "favorites"
-        ? "No favorite channels yet. Tap â beside a channel to add it."
+        ? "No favorite channels yet. Tap ★ beside a channel to add it."
         : "No channels found.";
     rows.push(empty);
   } else if (filtered.length > 400) {
@@ -1189,7 +1189,7 @@ function renderVodGrid() {
 
     const meta = document.createElement("small");
     meta.textContent =
-      [isSeries ? "Series" : "Movie", item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ");
+      [isSeries ? "Series" : "Movie", item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ");
 
     const badge = document.createElement("span");
     badge.className = `vod-type-badge ${isSeries ? "is-series" : "is-movie"}`;
@@ -1217,8 +1217,8 @@ function renderVodGrid() {
 
   elements.vodCategoryMeta.textContent =
     state.vod.total > 0
-      ? `${state.vod.items.length.toLocaleString()} loaded Â· ${state.vod.total.toLocaleString()} available`
-      : `${state.vod.items.length.toLocaleString()} titles loaded Â· ${filterLabel}`;
+      ? `${state.vod.items.length.toLocaleString()} loaded · ${state.vod.total.toLocaleString()} available`
+      : `${state.vod.items.length.toLocaleString()} titles loaded · ${filterLabel}`;
 }
 
 async function loadVodCategories() {
@@ -1352,8 +1352,8 @@ async function openVodModal(item) {
   saveWatchHistory();
 
   elements.vodModalTitle.textContent = item.title;
-  elements.vodModalMeta.textContent = "Loading provider detailsâ¦";
-  elements.vodModalDescription.textContent = item.description || "Loading title detailsâ¦";
+  elements.vodModalMeta.textContent = "Loading provider details…";
+  elements.vodModalDescription.textContent = item.description || "Loading title details…";
   setPoster(elements.vodModalPoster, item);
   elements.vodModal.hidden = false;
 
@@ -1383,7 +1383,7 @@ async function openVodModal(item) {
 function populateVodModal(item) {
   elements.vodModalTitle.textContent = item.title;
   elements.vodModalMeta.textContent =
-    [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "On demand";
+    [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "On demand";
   elements.vodModalDescription.textContent =
     item.description || "No description is available for this title.";
 
@@ -1453,7 +1453,7 @@ function renewVodLink(reason, retry) {
     reason,
     attempt: state.vod.linkRecoveries,
   });
-  showNotice("Refreshing the movie linkâ¦");
+  showNotice("Refreshing the movie link…");
   setTimeout(retry, 350);
 }
 
@@ -1789,12 +1789,12 @@ function openCombinedSeriesModal(item, detail = {}) {
   state.watchMeta[item.id] = { ...state.series.selected, mediaType: "series" };
   saveWatchHistory();
   elements.seriesModalTitle.textContent = item.title;
-  elements.seriesModalMeta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
+  elements.seriesModalMeta.textContent = [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "Series";
   elements.seriesModalDescription.textContent = item.description || "No description is available for this series.";
   elements.seriesFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites";
   setPoster(elements.seriesModalPoster, item);
-  elements.seriesSeasonSelect.replaceChildren(new Option("Loading seasonsâ¦", ""));
-  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading seasonsâ¦</p>';
+  elements.seriesSeasonSelect.replaceChildren(new Option("Loading seasons…", ""));
+  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading seasons…</p>';
   elements.seriesModal.hidden = false;
 
   const localSeasons = Array.isArray(detail.seasons) ? detail.seasons : [];
@@ -1821,7 +1821,7 @@ function openCombinedSeriesModal(item, detail = {}) {
 async function loadCombinedSeriesEpisodes(season) {
   const series = state.series.selected;
   if (!series) return;
-  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading episodesâ¦</p>';
+  elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading episodes…</p>';
   try {
     const result = await request(`/api/vod/episodes?categoryId=${encodeURIComponent(series.categoryId)}&itemId=${encodeURIComponent(series.id)}&season=${encodeURIComponent(season)}`);
     const episodes = Array.isArray(result.episodes) ? result.episodes : [];
@@ -1829,7 +1829,7 @@ async function loadCombinedSeriesEpisodes(season) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "series-episode-button";
-      button.textContent = `Episode ${episode.episode || index + 1} Â· ${episode.title}`;
+      button.textContent = `Episode ${episode.episode || index + 1} · ${episode.title}`;
       button.addEventListener("click", () => openQualityModal({
         kind: "episode",
         series,
@@ -1858,14 +1858,14 @@ async function openQualityModal({ kind, item, series, season, episode, resumeFro
 
   const isEpisode = kind === "episode";
   elements.qualityModalTitle.textContent = isEpisode
-    ? `${series.title} Â· ${episode.title}`
+    ? `${series.title} · ${episode.title}`
     : item.title;
   elements.qualityModalDescription.textContent = isEpisode
-    ? `Season ${season} Â· Episode ${episode.episode || ""}. Choose a quality before playback.`
+    ? `Season ${season} · Episode ${episode.episode || ""}. Choose a quality before playback.`
     : "Choose a quality before playback.";
   elements.qualityOptions.replaceChildren(Object.assign(document.createElement("p"), {
     className: "list-note",
-    textContent: "Loading quality optionsâ¦",
+    textContent: "Loading quality options…",
   }));
 
   closeVodModal();
@@ -1929,7 +1929,7 @@ async function playCombinedEpisode(
   elements.vodPlayerSection.hidden = false;
   elements.vodVideoLoading.hidden = false;
   elements.vodPlayerControls.hidden = true;
-  elements.vodControlTitle.textContent = `${series.title} Â· ${episode.title}`;
+  elements.vodControlTitle.textContent = `${series.title} · ${episode.title}`;
   resetVodPlayer();
   elements.vodPlayerSection.hidden = false;
   elements.vodVideoLoading.hidden = false;
@@ -1995,7 +1995,7 @@ function renderSeriesGrid() {
     play.className = "series-card-play series-action";
     play.textContent = "SEASONS";
     const title = document.createElement("strong"); title.textContent = item.title;
-    const meta = document.createElement("small"); meta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
+    const meta = document.createElement("small"); meta.textContent = [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "Series";
     card.append(poster, play, title, meta);
     card.addEventListener("click", () => openSeriesModal(item));
     return card;
@@ -2046,7 +2046,7 @@ async function loadNextSeriesPage(reset = false) {
 function openSeriesModal(item) {
   state.series.selected = item; state.watchMeta[item.id] = { ...item, mediaType: "series" }; saveWatchHistory();
   elements.seriesFavoriteButton.textContent = state.favoriteMedia.has(item.id) ? "Remove favourite" : "Add to favourites";
-  elements.seriesModalTitle.textContent = item.title; elements.seriesModalMeta.textContent = [item.year, item.rating && `â ${item.rating}`].filter(Boolean).join(" Â· ") || "Series";
+  elements.seriesModalTitle.textContent = item.title; elements.seriesModalMeta.textContent = [item.year, item.rating && `★ ${item.rating}`].filter(Boolean).join(" · ") || "Series";
   elements.seriesModalDescription.textContent = item.description || "No description is available for this series."; setPoster(elements.seriesModalPoster, item);
   elements.seriesSeasonSelect.replaceChildren(new Option("Loading seasons...", "")); elements.seriesEpisodes.innerHTML = '<p class="list-note">Loading seasons...</p>'; elements.seriesModal.hidden = false;
   request(`/api/series/seasons?seriesId=${encodeURIComponent(item.id)}`).then((result) => {
@@ -2061,7 +2061,7 @@ async function loadSeriesEpisodes(season) {
   try {
     const result = await request(`/api/series/episodes?seriesId=${encodeURIComponent(state.series.selected.id)}&season=${encodeURIComponent(season)}`);
     const episodes = Array.isArray(result.episodes) ? result.episodes : [];
-    const list = episodes.map((episode, index) => { const button = document.createElement("button"); button.type = "button"; button.className = "series-episode-button"; button.textContent = `Episode ${episode.episode || index + 1} Â· ${episode.title}`; button.addEventListener("click", () => playSeriesEpisode(state.series.selected, season, episode)); return button; });
+    const list = episodes.map((episode, index) => { const button = document.createElement("button"); button.type = "button"; button.className = "series-episode-button"; button.textContent = `Episode ${episode.episode || index + 1} · ${episode.title}`; button.addEventListener("click", () => playSeriesEpisode(state.series.selected, season, episode)); return button; });
     if (!list.length) { const note = document.createElement("p"); note.className = "list-note"; note.textContent = "No episodes were returned for this season."; list.push(note); }
     elements.seriesEpisodes.replaceChildren(...list);
   } catch (error) { elements.seriesEpisodes.textContent = error.message; }
@@ -2098,7 +2098,7 @@ function renderDashboard() {
     const poster = document.createElement("span"); poster.className = "dashboard-card-poster"; setPoster(poster, entry);
     const copy = document.createElement("span"); copy.className = "dashboard-card-copy";
     const title = document.createElement("strong"); title.textContent = entry.title || "Saved title";
-    const meta = document.createElement("small"); meta.textContent = `${entry.mediaType === "series" ? "Series" : "Movie"} Â· Resume ${formatTime(entry.time)}`;
+    const meta = document.createElement("small"); meta.textContent = `${entry.mediaType === "series" ? "Series" : "Movie"} · Resume ${formatTime(entry.time)}`;
     copy.append(title, meta); card.append(poster, copy);
     card.addEventListener("click", () => {
       setVodFilter(entry.mediaType === "series" ? "series" : "movie");
@@ -2291,12 +2291,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.5.5.json";
+  link.download = "netplus-diagnostics-v1.5.6.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.5.5.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.5.6.json file here.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
