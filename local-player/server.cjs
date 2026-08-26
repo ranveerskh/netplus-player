@@ -1,7 +1,7 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.5.5 Playback Relay / Session Fixes
+ VERSION: 1.5.6 Redirect Cookie-Jar Fix
  File: server.cjs
 =========================================================
 */
@@ -21,10 +21,10 @@ const HOST = "127.0.0.1";
 const PORT = 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.5.5";
+const APP_VERSION = "1.5.6";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.5.5.json"
+  "netplus-diagnostics-v1.5.6.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 
@@ -77,7 +77,7 @@ function redactUrl(value) {
   const urlMatch = raw.match(/(?:https?|rtsp|udp):\/\/[^\s"']+/i);
 
   if (!urlMatch) {
-    return raw.length > 160 ? `${raw.slice(0, 160)}â¦` : raw;
+    return raw.length > 160 ? `${raw.slice(0, 160)}…` : raw;
   }
 
   try {
@@ -2352,12 +2352,9 @@ function createRelayTarget(
     expiresAt: now + lifetimeMs,
     context,
     key,
-    credentials: credentials
-      ? {
-          cookie: String(credentials.cookie || ""),
-          authorization: String(credentials.authorization || ""),
-        }
-      : null,
+    /* Shared per-playback jar: manifest and segment tickets must see cookies
+       learned during an earlier redirect/request in the same playback. */
+    credentials: credentials || null,
   });
 
   if (key) relayTicketsByKey.set(key, ticket);
@@ -2446,7 +2443,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.5.5.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.5.6.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -2530,6 +2527,59 @@ function isValidHlsManifest(body) {
     .startsWith("#EXTM3U");
 }
 
+async function fetchRelayUpstream(target, headers) {
+  let currentUrl = target.url;
+  const requestHeaders = { ...headers };
+  const redirects = [];
+
+  for (let redirectCount = 0; redirectCount <= 6; redirectCount += 1) {
+    const response = await fetch(currentUrl, {
+      headers: requestHeaders,
+      redirect: "manual",
+      signal: AbortSignal.timeout(45_000),
+    });
+
+    /* Native fetch/undici has no persistent cookie jar. Capture cookies from
+       every CDN hop and send them on the next hop and later HLS requests. */
+    const responseCookies = extractSetCookiePairs(response.headers);
+    if (responseCookies.length) {
+      target.credentials ||= {};
+      target.credentials.cookie = mergeCookieHeader(
+        target.credentials.cookie,
+        responseCookies
+      );
+      requestHeaders.Cookie = target.credentials.cookie;
+    }
+
+    const location = response.headers.get("location");
+    const isRedirect = response.status >= 300 && response.status < 400;
+
+    if (!isRedirect || !location) {
+      return { response, finalUrl: currentUrl, redirects };
+    }
+
+    const nextUrl = new URL(location, currentUrl).toString();
+    redirects.push({
+      from: currentUrl,
+      to: nextUrl,
+      status: response.status,
+    });
+
+    /* Authorization is origin-bound. Cookies learned from the redirect are
+       retained, while the portal Bearer token is not sent to a new CDN host. */
+    try {
+      if (new URL(nextUrl).origin !== new URL(currentUrl).origin) {
+        delete requestHeaders.Authorization;
+      }
+    } catch {}
+
+    try { await response.body?.cancel(); } catch {}
+    currentUrl = nextUrl;
+  }
+
+  throw new PlayerError("The stream provider returned too many redirects.", 502);
+}
+
 async function relay(req, res, ticket) {
   const target = relayTargets.get(ticket);
 
@@ -2558,27 +2608,37 @@ async function relay(req, res, ticket) {
   }
 
   let upstream;
+  let finalUrl = target.url;
+  let redirects = [];
   const startedAt = Date.now();
 
   try {
-    upstream = await fetch(target.url, {
-      headers,
-      redirect: "follow",
-      signal: AbortSignal.timeout(45_000),
-    });
-  } catch {
-    recordDiagnostic("relay.timeout", {
+    const result = await fetchRelayUpstream(target, headers);
+    upstream = result.response;
+    finalUrl = result.finalUrl;
+    redirects = result.redirects;
+  } catch (error) {
+    const errorStatus = error instanceof PlayerError ? error.status : 504;
+    recordDiagnostic("relay.upstream_error", {
       context: target.context,
       url: target.url,
+      redirects,
       elapsedMs: Date.now() - startedAt,
+      status: errorStatus,
+      message: error?.message || "upstream request failed",
     });
-    return text(res, 504, "Stream server timed out.");
+    return text(
+      res,
+      errorStatus,
+      errorStatus === 504 ? "Stream server timed out." : error.message
+    );
   }
 
   if (!upstream.ok && upstream.status !== 206) {
     recordDiagnostic("relay.http_error", {
       context: target.context,
-      url: upstream.url || target.url,
+      url: finalUrl || upstream.url || target.url,
+      redirects,
       status: upstream.status,
       elapsedMs: Date.now() - startedAt,
       contentType: upstream.headers.get("content-type") || "",
@@ -2593,11 +2653,12 @@ async function relay(req, res, ticket) {
   const contentType = upstream.headers.get("content-type") || "";
   const isManifest =
     isLikelyHls(target.url, contentType) ||
-    isLikelyHls(upstream.url, contentType);
+    isLikelyHls(finalUrl || upstream.url, contentType);
 
   recordDiagnostic("relay.response", {
     context: target.context,
-    url: upstream.url || target.url,
+    url: finalUrl || upstream.url || target.url,
+    redirects,
     status: upstream.status,
     elapsedMs: Date.now() - startedAt,
     contentType,
@@ -2619,7 +2680,7 @@ async function relay(req, res, ticket) {
       recordDiagnostic("relay.invalid_manifest", {
         context: target.context,
         requestedUrl: target.url,
-        returnedUrl: upstream.url || target.url,
+        returnedUrl: finalUrl || upstream.url || target.url,
         status: upstream.status,
         contentType,
         contentLength: upstream.headers.get("content-length") || "",
@@ -2635,7 +2696,7 @@ async function relay(req, res, ticket) {
 
     const body = rewriteManifest(
       upstreamBody,
-      upstream.url,
+      finalUrl,
       target.context,
       target.credentials
     );
@@ -2680,7 +2741,7 @@ async function relay(req, res, ticket) {
   readable.on("error", () => {
     recordDiagnostic("relay.body_error", {
       context: target.context,
-      url: upstream.url || target.url,
+      url: finalUrl || upstream.url || target.url,
       elapsedMs: Date.now() - startedAt,
     });
     if (!res.destroyed) res.destroy();
@@ -2689,7 +2750,7 @@ async function relay(req, res, ticket) {
   readable.on("end", () => {
     recordDiagnostic("relay.complete", {
       context: target.context,
-      url: upstream.url || target.url,
+      url: finalUrl || upstream.url || target.url,
       elapsedMs: Date.now() - startedAt,
     });
   });
