@@ -1,0 +1,3 @@
+NetPlus IPTV Player
+Version: 1.6.4
+Build: Premium UI + Fresh VOD create_link Playback + Provider-wide Search
