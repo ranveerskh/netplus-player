@@ -1,3 +1,0 @@
-NetPlus IPTV Player
-Version: 1.5.3
-Build: Direct VOD Playback + Fast Live Link Renewal + HLS HTML Detection
