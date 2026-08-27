@@ -1,12 +1,12 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.5.7 Native VOD CDN Request Fix
+ VERSION: 1.5.8 Fresh VOD create_link Fix
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.5.7";
+const APP_VERSION = "1.5.8";
 
 const state = {
   catalog: null,
@@ -202,7 +202,7 @@ async function request(url, options = {}) {
   return payload;
 }
 
-/* v1.5.7: browser/HLS events are sent without any portal URL,
+/* v1.5.8: browser/HLS events are sent without any portal URL,
    MAC, token, cookie, or user-entered credentials. */
 function recordClientDiagnostic(event, details = {}) {
   fetch("/api/diagnostics/event", {
@@ -2291,12 +2291,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.5.7.json";
+  link.download = "netplus-diagnostics-v1.5.8.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.5.7.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.5.8.json file here.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
