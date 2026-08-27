@@ -1,0 +1,344 @@
+<!doctype html>
+<!--
+=========================================================
+ NetPlus IPTV Player
+ VERSION: 1.6.2 Premium UI + Fresh VOD Playback
+ File: index.html
+=========================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="app-version" content="1.6.2-premium-ui">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>NetPlus IPTV Player · 1.6.2</title>
+  <link rel="stylesheet" href="styles.css?v=1.6.2-premium-ui">
+  <script src="hls.min.js"></script>
+</head>
+
+<body class="theme-dark">
+
+<header id="topbar" class="topbar" hidden>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true"><span>N</span><b>+</b></div>
+    <div class="brand-copy"><strong>NetPlus</strong><small>Entertainment, simplified</small></div>
+  </div>
+  <div class="topbar-right">
+    <button id="appFullscreenButton" class="settings-button app-fullscreen-button" type="button">Full screen</button>
+    <button id="settingsButton" class="settings-button" type="button">Settings</button>
+  </div>
+</header>
+
+<nav id="modebar" class="modebar" hidden>
+  <button class="mode-button active" data-mode="dashboard" type="button">Dashboard</button>
+  <button class="mode-button" data-mode="live" type="button">Live TV</button>
+  <button class="mode-button" data-mode="content" type="button">Movies &amp; Series</button>
+  <button class="mode-button" data-mode="favorites" type="button">Favourites</button>
+</nav>
+
+<main id="setup" class="setup">
+  <form id="setupForm" class="setup-card" autocomplete="off">
+    <div class="setup-logo">N+</div>
+    <p class="eyebrow">NetPlus IPTV Player</p>
+    <h1>Connect your service</h1>
+    <p class="setup-copy">Select your NetPlus service, enter your MAC address and create a 4-digit parental PIN.</p>
+    <div id="setupError" class="form-error" hidden></div>
+
+    <label for="serviceId">Service</label>
+    <select id="serviceId" required>
+      <option value="">Select service</option>
+      <option value="edge">Netplus Edge</option>
+      <option value="classic">Netplus Classic</option>
+    </select>
+
+    <label for="mac">MAC Address</label>
+    <input id="mac" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
+      spellcheck="false" maxlength="17" placeholder="00:1A:79:00:00:00" required>
+    <small class="field-help">Type 12 hexadecimal characters. Colons are added automatically.</small>
+
+    <label for="parentalPin">Set Parental PIN</label>
+    <input id="parentalPin" type="password" inputmode="numeric" autocomplete="new-password"
+      pattern="[0-9]{4}" maxlength="4" placeholder="4-digit PIN" required>
+    <small class="field-help">This PIN is used to unlock protected content.</small>
+
+    <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
+    <p class="setup-version">NetPlus v1.6.2 · Premium desktop player</p>
+  </form>
+</main>
+
+<main id="dashboardWorkspace" class="dashboard-workspace" hidden>
+  <header class="dashboard-hero"><div class="dashboard-hero-copy"><p class="eyebrow">Your entertainment hub</p><h1>Welcome back</h1><p>Pick up where you left off, discover something new, or jump straight into Live TV.</p><div class="dashboard-hero-meta"><span>Live TV</span><span>Movies</span><span>Series</span></div></div><div class="dashboard-hero-badge"><span>N</span><b>+</b></div></header>
+  <section id="dashboardActions" class="dashboard-actions" aria-label="Quick actions"></section>
+  <section class="dashboard-section"><div class="section-heading"><h2>Continue Watching</h2><span>Saved on this device</span></div><div id="continueWatching" class="dashboard-grid"></div></section>
+  <section class="dashboard-section"><div class="section-heading"><h2>Recommended for you</h2><span>From your provider catalogue</span></div><div id="recommendedGrid" class="dashboard-grid"></div></section>
+  <section class="dashboard-section"><div class="section-heading"><h2>Popular right now</h2><span>Fresh catalogue picks</span></div><div id="popularGrid" class="dashboard-grid"></div></section>
+</main>
+
+<main id="favoritesWorkspace" class="dashboard-workspace" hidden>
+  <header class="dashboard-header"><p class="eyebrow">Your library</p><h1>Favourites</h1><p>Channels and titles you saved.</p></header>
+  <section class="dashboard-section"><div class="section-heading"><h2>Favourite channels</h2></div><div id="favoriteChannelsGrid" class="favorites-list"></div></section>
+  <section class="dashboard-section"><div class="section-heading"><h2>Favourite titles</h2></div><div id="favoriteMediaGrid" class="dashboard-grid"></div></section>
+</main>
+
+<main id="workspace" class="workspace" hidden>
+  <section class="panel categories-panel">
+    <div class="heading">
+      <div><p>Live TV</p><strong>Categories</strong></div>
+      <div class="heading-actions">
+        <span id="groupCount">0 groups</span>
+        <button id="editGroupsButton" class="small-action-button" type="button">Show / edit</button>
+      </div>
+    </div>
+    <div id="categories" class="scroll-list"></div>
+  </section>
+
+  <section class="panel channels-panel">
+    <div class="heading channels-heading">
+      <div><p>Channels</p><strong id="channelCount">0 channels</strong></div>
+      <div class="channel-heading-tools">
+        <input id="search" type="search" placeholder="Search channels..." autocomplete="off">
+        <button id="editChannelsButton" class="small-action-button" type="button">Show / edit</button>
+      </div>
+    </div>
+    <div id="channels" class="scroll-list channel-list"></div>
+  </section>
+
+  <section class="player-column">
+    <article id="playerContainer" class="player-card player-container">
+      <div class="video-stage">
+        <video id="video" playsinline></video>
+        <div id="placeholder" class="placeholder">
+          <span>Play</span><strong>Select a channel</strong>
+          <p>Choose a channel from the list to begin watching Live TV.</p>
+        </div>
+        <div id="videoLoading" class="loading" hidden><b></b><p>Loading stream...</p></div>
+        <div id="customControls" class="custom-controls" hidden>
+          <div class="controls-top"><h2 id="controlTitle">NetPlus</h2><span id="controlEpg">Live TV</span></div>
+          <div class="controls-bottom">
+            <div id="progressContainer" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+            <div class="controls-buttons">
+              <div class="controls-left">
+                <button id="playPauseBtn" class="control-btn" type="button" aria-label="Play or pause">Pause</button>
+                <div class="volume-container">
+                  <button id="muteBtn" class="control-btn" type="button" aria-label="Mute">Vol</button>
+                  <input id="volumeSlider" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+                </div>
+                <span id="timeDisplay" class="time-display">LIVE</span>
+              </div>
+              <div class="controls-right">
+                <button id="fullscreenBtn" class="control-btn" type="button" aria-label="Fullscreen">Full</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="now-playing"><div><p id="playerModeBadge">LIVE</p><h1 id="nowPlaying">Nothing playing</h1></div></div>
+    </article>
+    <div id="notice" class="notice" hidden></div>
+  </section>
+</main>
+
+<!-- Movies workspace. Existing IDs are preserved for app.js compatibility. -->
+<main id="vodWorkspace" class="vod-workspace" hidden>
+  <aside class="vod-sidebar">
+    <div class="vod-sidebar-header"><p>On Demand</p><h2>Movies &amp; Series</h2></div>
+    <div class="vod-search-box"><input id="vodSearch" type="search" placeholder="Search movies &amp; series..." autocomplete="off"></div>
+    <div id="vodCategories" class="vod-category-list"><p class="list-note">Loading categories...</p></div>
+  </aside>
+
+  <section class="vod-main">
+    <section id="vodPlayerSection" class="vod-player-section" aria-label="Video player" hidden>
+      <div id="vodPlayerContainer" class="vod-player-container">
+        <video id="vodVideo" playsinline></video>
+        <div id="vodVideoLoading" class="loading" hidden><b></b><p>Loading movie...</p></div>
+        <div id="vodPlayerControls" class="custom-controls" hidden>
+          <div class="controls-top"><h2 id="vodControlTitle">Movie</h2><span>On Demand</span></div>
+          <div class="controls-bottom">
+            <div id="vodProgressContainer" class="progress-container"><div id="vodProgressBar" class="progress-bar"></div></div>
+            <div class="controls-buttons">
+              <div class="controls-left">
+                <button id="vodPlayPauseBtn" class="control-btn" type="button">Pause</button>
+                <div class="volume-container">
+                  <button id="vodMuteBtn" class="control-btn" type="button">Vol</button>
+                  <input id="vodVolumeSlider" type="range" min="0" max="1" step="0.05" value="1">
+                </div>
+                <span id="vodTimeDisplay" class="time-display">0:00 / 0:00</span>
+              </div>
+              <div class="controls-right">
+                <button id="closeVodPlayerButton" class="control-btn vod-close-player" type="button" aria-label="Exit player">Back</button>
+                <button id="vodFullscreenBtn" class="control-btn" type="button" aria-label="Toggle video fullscreen">Full</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <header class="vod-main-header">
+      <div><p class="eyebrow">Browse your provider</p><h1 id="vodCategoryTitle">Movies &amp; Series</h1><p id="vodCategoryMeta">Choose a category from the left.</p></div>
+    </header>
+    <div id="vodGrid" class="vod-grid"></div>
+    <div id="vodLoadMore" class="vod-load-more">
+      <div id="vodLoadSpinner" class="vod-load-spinner" hidden><b></b><span>Loading more...</span></div>
+      <button id="vodLoadMoreButton" class="load-more-button" type="button">Load more</button>
+      <p id="vodEndMessage" class="list-note" hidden>You reached the end of this category.</p>
+    </div>
+  </section>
+</main>
+
+<!-- Series browser uses the same unified Movies & Series section. -->
+<main id="seriesWorkspace" class="vod-workspace content-subworkspace" hidden>
+  <aside class="vod-sidebar">
+    <div class="vod-sidebar-header"><p>On Demand</p><h2>Series</h2></div>
+    <div class="vod-search-box"><input id="seriesSearch" type="search" placeholder="Search series..." autocomplete="off"></div>
+    <div id="seriesCategories" class="vod-category-list"><p class="list-note">Loading series categories...</p></div>
+  </aside>
+  <section class="vod-main">
+    <section id="seriesPlayerSection" class="vod-player-section" hidden>
+      <div id="seriesPlayerContainer" class="vod-player-container">
+        <video id="seriesVideo" playsinline></video>
+        <div id="seriesVideoLoading" class="loading" hidden><b></b><p>Loading episode...</p></div>
+        <button id="closeSeriesPlayerButton" class="close-btn" type="button" title="Close player">Close</button>
+      </div>
+    </section>
+    <header class="vod-main-header">
+    <div><p class="eyebrow">Browse Series</p><h1 id="seriesCategoryTitle">Series</h1><p id="seriesCategoryMeta">Choose a category from the left.</p></div>
+    </header>
+    <div id="seriesGrid" class="vod-grid"></div>
+    <div id="seriesLoadMore" class="vod-load-more">
+      <div id="seriesLoadSpinner" class="vod-load-spinner" hidden><b></b><span>Loading more...</span></div>
+      <p id="seriesEndMessage" class="list-note" hidden>You reached the end of this category.</p>
+    </div>
+  </section>
+</main>
+
+<div id="vodModal" class="modal-overlay" hidden>
+  <div class="modal-content vod-modal-box">
+    <button id="vodClose" class="close-btn" type="button" aria-label="Close">Close</button>
+    <div class="modal-split">
+      <div id="vodModalPoster" class="modal-poster"></div>
+      <div class="modal-details">
+        <p class="eyebrow">NetPlus On Demand</p>
+        <h2 id="vodModalTitle">Movie</h2>
+        <p id="vodModalMeta" class="meta-text"></p>
+        <p id="vodModalDescription" class="desc-text"></p>
+        <div class="vod-actions">
+          <button id="vodPlayButton" class="play-btn" type="button">Choose quality</button>
+          <button id="vodResumeButton" class="play-btn resume-btn" type="button" hidden>Choose quality to resume</button>
+          <button id="vodFavoriteButton" class="play-btn resume-btn" type="button">Add to favourites</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Movie/episode quality selection. Raw provider commands never enter the browser. -->
+<div id="qualityModal" class="modal-overlay" hidden>
+  <div class="modal-content quality-modal-box">
+    <button id="qualityClose" class="close-btn" type="button" aria-label="Close">Close</button>
+    <p class="eyebrow">Playback quality</p>
+    <h2 id="qualityModalTitle">Choose quality</h2>
+    <p id="qualityModalDescription" class="desc-text">Choose a quality before playback.</p>
+    <div id="qualityOptions" class="quality-options">
+      <p class="list-note">Loading quality options…</p>
+    </div>
+  </div>
+</div>
+
+<!-- Series details modal -->
+<div id="seriesModal" class="modal-overlay" hidden>
+  <div class="modal-content vod-modal-box">
+    <button id="seriesClose" class="close-btn" type="button" aria-label="Close">Close</button>
+    <div class="modal-split">
+      <div id="seriesModalPoster" class="modal-poster"></div>
+      <div class="modal-details">
+        <p class="eyebrow">NetPlus Series</p>
+        <h2 id="seriesModalTitle">Series</h2>
+        <p id="seriesModalMeta" class="meta-text"></p>
+        <p id="seriesModalDescription" class="desc-text"></p>
+        <p class="list-note series-flow-note">Choose a season, then an episode, then playback quality.</p>
+        <div class="settings-section">
+          <label for="seriesSeasonSelect">Season</label>
+          <select id="seriesSeasonSelect"><option value="">Select season</option></select>
+        </div>
+        <button id="seriesFavoriteButton" class="play-btn resume-btn" type="button">Add to favourites</button>
+        <div id="seriesEpisodes" class="series-episodes">
+          <p class="list-note">Select a season to see episodes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pinModal" class="modal-overlay" hidden>
+  <div class="modal-content pin-modal-box">
+    <button id="closePinModal" class="close-btn" type="button">Close</button>
+    <div class="pin-lock-icon">PIN</div>
+    <p class="eyebrow">Parental Controls</p>
+    <h2>Protected content</h2>
+    <p class="pin-description">Enter your parental PIN to continue.</p>
+    <form id="pinUnlockForm" autocomplete="off">
+      <input id="unlockPin" class="pin-input" type="password" inputmode="numeric" maxlength="4"
+        pattern="[0-9]{4}" placeholder="4-digit PIN" autocomplete="off" required>
+      <div id="unlockPinError" class="form-error pin-error" hidden></div>
+      <button id="unlockPinButton" class="primary-button" type="submit">Unlock</button>
+    </form>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal-overlay" hidden>
+  <div class="modal-content settings-box">
+    <button id="closeSettingsButton" class="close-btn" type="button">Close</button>
+    <p class="eyebrow">NetPlus</p><h2>App Settings</h2>
+    <section class="settings-section">
+      <h3>Appearance</h3><label for="themeSelect">App Theme</label>
+      <select id="themeSelect"><option value="dark">Dark Theme</option><option value="light">Light Theme</option></select>
+    </section>
+    <section class="settings-section">
+      <h3>Content</h3>
+      <p>Content refreshes automatically once every 24 hours. Use the button below whenever you want the latest catalogue immediately.</p>
+      <div class="input-row"><button id="refreshContentButton" type="button">Refresh content</button><button id="clearCacheButton" type="button">Clear local cache</button></div>
+      <span id="contentNotice" class="settings-notice" hidden></span>
+    </section>
+    <section class="settings-section">
+      <h3>History</h3>
+      <p>Remove one title with the × on its Home card, or clear all saved progress here.</p>
+      <button id="clearHistoryButton" class="secondary-wide-button" type="button">Clear watch history</button>
+    </section>
+    <section class="settings-section">
+      <h3>Cast &amp; share</h3>
+      <p id="castingStatus">Checking supported casting options…</p>
+      <button id="shareButton" class="secondary-wide-button" type="button" hidden>Share NetPlus</button>
+    </section>
+    <section class="settings-section">
+      <h3>Parental Controls</h3><label for="newParentalPin">Change Parental PIN</label>
+      <div class="input-row">
+        <input id="newParentalPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="New 4-digit PIN">
+        <button id="updatePinButton" type="button">Update PIN</button>
+      </div>
+      <span id="pinNotice" class="settings-notice" hidden></span>
+    </section>
+    <section class="settings-section">
+      <h3>Playback diagnostic</h3>
+      <p>Start a fresh test, play one Live TV channel for 45 seconds, try one movie, then open one series and season. The report excludes your MAC address, PIN, token, cookies, and full stream links.</p>
+      <div class="input-row">
+        <button id="resetDiagnosticButton" type="button">Start fresh test</button>
+        <button id="downloadDiagnosticButton" type="button">Download report</button>
+      </div>
+      <span id="diagnosticNotice" class="settings-notice" hidden></span>
+    </section>
+    <section class="settings-section warning-section">
+      <h3>Portal Configuration</h3>
+      <p>Change your service or MAC address by returning to the setup screen.</p>
+      <button id="resetPortalButton" class="danger-btn" type="button">Reconfigure Portal</button>
+    </section>
+    <p class="settings-version">NetPlus IPTV Player v1.6.2 · Fresh VOD create_link + Premium UI</p>
+  </div>
+</div>
+
+<script src="app.js?v=1.6.2-premium-ui"></script>
+</body>
+</html>
