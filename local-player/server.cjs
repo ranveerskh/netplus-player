@@ -1,7 +1,7 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.5.7 Native VOD CDN Request Fix
+ VERSION: 1.5.8 Fresh VOD create_link Fix
  File: server.cjs
 =========================================================
 */
@@ -21,10 +21,10 @@ const HOST = "127.0.0.1";
 const PORT = 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.5.7";
+const APP_VERSION = "1.5.8";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.5.7.json"
+  "netplus-diagnostics-v1.5.8.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 
@@ -1247,6 +1247,86 @@ function getQualityCommand(token, expected) {
   return entry.command;
 }
 
+/*
+  The portal's VOD list exposes a playable URL in `cmd`, but the native MAG
+  client does not replay that URL. It converts the selected file row to a
+  fresh create_link command such as /media/file_217872.mpg. Reusing the old
+  CDN URL is what caused the 403 seen in v1.5.7 after the URL had expired.
+*/
+function vodFileId(row) {
+  if (!row || typeof row !== "object") return "";
+
+  const value =
+    row.file_id ??
+    row.fileId ??
+    (row.is_file || row.file_type ? row.id : "");
+
+  const id = String(value ?? "").trim();
+  return /^\d+$/.test(id) ? id : "";
+}
+
+function commandUrl(value) {
+  try {
+    return parsePortalStream(value);
+  } catch {
+    return "";
+  }
+}
+
+async function resolveVodCreateCommand(command, item, hierarchyOptions = {}) {
+  const original = String(command || "").trim();
+  if (!original) return "";
+
+  let hierarchy;
+  try {
+    hierarchy = await requestVodHierarchy(item, hierarchyOptions);
+  } catch (error) {
+    recordDiagnostic("vod.create_command_hierarchy_failed", {
+      command: original,
+      message: error.message,
+    });
+    return original;
+  }
+
+  const rows = Array.isArray(hierarchy?.rows) ? hierarchy.rows : [];
+  const originalUrl = commandUrl(original);
+  const fileRows = rows.filter((row) => vodFileId(row));
+
+  const matchingRow = fileRows.find((row) => {
+    const rowCommand = firstNestedValue(row, QUALITY_COMMAND_KEYS);
+    if (!rowCommand) return false;
+
+    if (rowCommand === original) return true;
+
+    const rowUrl = commandUrl(rowCommand);
+    return Boolean(originalUrl && rowUrl && originalUrl === rowUrl);
+  });
+
+  const row = matchingRow || (fileRows.length === 1 ? fileRows[0] : null);
+  const fileId = vodFileId(row);
+
+  if (!fileId) {
+    recordDiagnostic("vod.create_command_file_id_missing", {
+      command: original,
+      rowCount: rows.length,
+      fileRowCount: fileRows.length,
+      seasonId: hierarchyOptions.seasonId,
+      episodeId: hierarchyOptions.episodeId,
+    });
+    return original;
+  }
+
+  const freshCommand = `/media/file_${fileId}.mpg`;
+  recordDiagnostic("vod.create_command_mapped", {
+    originalCommand: original,
+    freshCommand,
+    fileId,
+    seasonId: hierarchyOptions.seasonId,
+    episodeId: hierarchyOptions.episodeId,
+  });
+  return freshCommand;
+}
+
 async function getVodQualityOptions(categoryId, itemId) {
   const item = await findVodItem(categoryId, itemId);
   if (!item) throw new PlayerError("Movie is no longer available. Refresh Movies & Series and try again.", 404);
@@ -1353,25 +1433,19 @@ async function getVodStreamUrl(categoryId, itemId, qualityId = "") {
     );
   }
 
-  const command = qualityId
+  const requestedCommand = qualityId
     ? getQualityCommand(qualityId, { kind: "movie", categoryId, itemId })
     : await resolveVodCommand(item);
 
-  if (!command) {
+  if (!requestedCommand) {
     throw new PlayerError("Portal did not provide a movie playback command.");
   }
 
-  const directStreamUrl = directStreamFromCommand(command);
-  if (directStreamUrl) {
-    recordDiagnostic("vod.direct_playback_link", {
-      itemId,
-      title: item.title,
-      command,
-      streamUrl: directStreamUrl,
-      createLinkBypassed: true,
-    });
-    return directStreamUrl;
-  }
+  /* Always obtain a fresh VOD link, matching STBEmu's create_link flow. */
+  const command = await resolveVodCreateCommand(requestedCommand, item, {
+    seasonId: "0",
+    episodeId: "0",
+  });
 
   const catalog = await activeCatalog();
 
@@ -1551,7 +1625,7 @@ async function getCombinedVodEpisodeStream(categoryId, itemId, seasonNumber, epi
     throw new PlayerError("Episode is no longer available. Refresh and try again.", 404);
   }
 
-  const command = qualityId
+  const requestedCommand = qualityId
     ? getQualityCommand(qualityId, {
         kind: "episode",
         categoryId,
@@ -1560,7 +1634,7 @@ async function getCombinedVodEpisodeStream(categoryId, itemId, seasonNumber, epi
         episodeId: episode.id,
       })
     : episode.cmd || firstNestedValue(episode.raw, ["cmd", "command", "playback_cmd", "url", "stream_url"]);
-  if (!command) {
+  if (!requestedCommand) {
     recordDiagnostic("vod.series_episode_command_missing", {
       categoryId,
       itemId,
@@ -1571,19 +1645,12 @@ async function getCombinedVodEpisodeStream(categoryId, itemId, seasonNumber, epi
     throw new PlayerError("Portal did not provide a playback command for this episode.");
   }
 
-  const directStreamUrl = directStreamFromCommand(command);
-  if (directStreamUrl) {
-    recordDiagnostic("vod.series_direct_playback_link", {
-      categoryId,
-      itemId,
-      seasonNumber: safeSeason,
-      episodeId,
-      command,
-      streamUrl: directStreamUrl,
-      createLinkBypassed: true,
-    });
-    return directStreamUrl;
-  }
+  /* The native capture shows the exact episode file row is resolved first,
+     then create_link is called with /media/file_<fileId>.mpg. */
+  const command = await resolveVodCreateCommand(requestedCommand, item, {
+    seasonId: String(episode.seasonPortalId || safeSeason),
+    episodeId: String(episode.portalId || episode.id),
+  });
 
   const catalog = await activeCatalog();
   const response = await portalRequest(
@@ -2243,18 +2310,14 @@ async function getSeriesEpisodeStream(seriesId, seasonNumber, episodeId) {
     throw new PlayerError("Portal did not provide an episode playback command.");
   }
 
-  const directStreamUrl = directStreamFromCommand(episode.cmd);
-  if (directStreamUrl) {
-    recordDiagnostic("series.direct_playback_link", {
-      seriesId,
-      seasonNumber,
-      episodeId,
-      command: episode.cmd,
-      streamUrl: directStreamUrl,
-      createLinkBypassed: true,
-    });
-    return directStreamUrl;
-  }
+  const command = await resolveVodCreateCommand(episode.cmd, {
+    id: String(seriesId),
+    movieId: String(seriesId),
+    videoId: String(seriesId),
+  }, {
+    seasonId: String(seasonNumber),
+    episodeId: String(episode.portalId || episode.id || episodeId),
+  });
 
   const catalog = await activeCatalog();
 
@@ -2443,7 +2506,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.5.7.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.5.8.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
