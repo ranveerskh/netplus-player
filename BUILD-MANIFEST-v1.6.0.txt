@@ -1,0 +1,34 @@
+NetPlus IPTV Player — Fresh Build Manifest
+Version: 1.6.1
+Build date: 2026-08-27
+Build label: Premium UI + Fresh VOD create_link Playback + Provider-wide Search
+
+Included fixes
+1. Final movie and episode http/https quality URLs bypass duplicate create_link.
+2. Opaque and relative playback commands still use Stalker create_link.
+3. Movie flow remains title -> quality -> playback.
+4. Show flow remains title -> seasons -> episodes -> quality -> playback.
+5. Live HLS 401/403/410/502 failures trigger immediate fresh-link renewal.
+6. A renewed Live TV link is fetched before the old HLS instance is detached.
+7. HTML/SafeBrowse responses masquerading as .m3u8 are rejected by the relay.
+8. Live recovery is bounded and resets after successful fragment delivery.
+9. v1.6.1 Home UI includes Continue Watching, recommendations, popular picks,
+   history deletion, light/dark themes, and responsive layout.
+10. Movies and Series use one page with provider-wide search and readable quality labels.
+11. VOD opens in an in-app full-screen overlay; controls auto-hide and return on tap.
+12. Daily automatic refresh and manual Settings refresh are included.
+13. The tested V1.5.8 server playback fix is included in local-player/server.cjs.
+14. GitHub Actions Windows NSIS installer workflow is included.
+15. electron-builder publishing is explicitly disabled for CI installer builds.
+
+Verified before packaging
+- local-player/server.cjs: node --check passed
+- local-player/app.js: node --check passed
+- package.json version: 1.6.1 confirmed
+- desktop:make: electron-builder --win nsis --publish never confirmed
+- workflow uses Node 22 and uploads release/Netplus-IPTV-Player-Setup-*.exe
+- no portal credentials, config.json, diagnostics, EXE, or node_modules included
+
+Provider note
+The app can renew expired links and correctly use direct quality links, but it
+cannot restore content that the upstream IPTV provider has removed or blocked.
