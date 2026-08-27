@@ -1,13 +1,12 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.6.0 Native MPV/VLC Playback Test
+ VERSION: 1.5.7 Native VOD CDN Request Fix
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.6.0";
-const USE_NATIVE_PLAYER = true;
+const APP_VERSION = "1.5.7";
 
 const state = {
   catalog: null,
@@ -203,7 +202,7 @@ async function request(url, options = {}) {
   return payload;
 }
 
-/* v1.6.0: browser/HLS events are sent without any portal URL,
+/* v1.5.7: browser/HLS events are sent without any portal URL,
    MAC, token, cookie, or user-entered credentials. */
 function recordClientDiagnostic(event, details = {}) {
   fetch("/api/diagnostics/event", {
@@ -982,24 +981,6 @@ async function playSelectedLive(isRecovery = false) {
   elements.nowPlaying.textContent = selected.name;
 
   try {
-    if (USE_NATIVE_PLAYER) {
-      const result = await request("/api/native/live", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          channelId: selected.id,
-          title: selected.name,
-        }),
-      });
-
-      if (token !== state.liveRetryToken || state.selected?.id !== selected.id) return;
-
-      elements.videoLoading.hidden = true;
-      elements.customControls.hidden = true;
-      showNotice(result.message || "Native player opened.");
-      return;
-    }
-
     const payload = await request("/api/play", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1662,26 +1643,6 @@ async function playVod(item, resumeFrom = 0, qualityId = "", isRenewal = false) 
   showNotice("");
 
   try {
-    if (USE_NATIVE_PLAYER) {
-      const result = await request("/api/native/vod", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          categoryId: item.categoryId,
-          itemId: item.id,
-          title: item.title,
-          ...(qualityId ? { qualityId } : {}),
-        }),
-      });
-
-      if (token !== state.vod.retryToken || state.vod.selected?.id !== item.id) return;
-
-      elements.vodVideoLoading.hidden = true;
-      elements.vodPlayerControls.hidden = true;
-      showNotice(result.message || "Native player opened.");
-      return;
-    }
-
     const payload = await request("/api/vod/play", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1974,28 +1935,6 @@ async function playCombinedEpisode(
   elements.vodVideoLoading.hidden = false;
   const token = ++state.vod.retryToken;
   try {
-    if (USE_NATIVE_PLAYER) {
-      const result = await request("/api/native/vod/episode", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          categoryId: series.categoryId,
-          itemId: series.id,
-          season: Number(season),
-          episodeId: String(episode.id),
-          title: `${series.title} · ${episode.title}`,
-          ...(qualityId ? { qualityId } : {}),
-        }),
-      });
-
-      if (token !== state.vod.retryToken || state.vod.selected?.id !== series.id) return;
-
-      elements.vodVideoLoading.hidden = true;
-      elements.vodPlayerControls.hidden = true;
-      showNotice(result.message || "Native player opened.");
-      return;
-    }
-
     const payload = await request("/api/vod/episode/play", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -2352,12 +2291,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.6.0.json";
+  link.download = "netplus-diagnostics-v1.5.7.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.6.0.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.5.7.json file here.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
