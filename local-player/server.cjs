@@ -1,7 +1,7 @@
 /*
 =========================================================
  NetPlus IPTV Player
- VERSION: 1.6.0 Native MPV/VLC Playback Test
+ VERSION: 1.5.7 Native VOD CDN Request Fix
  File: server.cjs
 =========================================================
 */
@@ -21,10 +21,10 @@ const HOST = "127.0.0.1";
 const PORT = 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.6.0";
+const APP_VERSION = "1.5.7";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.6.0.json"
+  "netplus-diagnostics-v1.5.7.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 
@@ -49,7 +49,6 @@ const seriesCache = new Map();
 const qualityOptionCache = new Map();
 const relayTargets = new Map();
 const relayTicketsByKey = new Map();
-const nativeProcesses = new Map();
 
 const ADULT_TERMS = /\b(adult|xxx|18\+|porn|erotic|sex)\b/i;
 
@@ -2444,7 +2443,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.6.0.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.5.7.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -2533,7 +2532,31 @@ async function fetchRelayUpstream(target, headers) {
   const requestHeaders = { ...headers };
   const redirects = [];
 
+  /*
+    The working STBEmu capture is decisive here: VOD media requests are made
+    directly to the provider's dynamic host and custom port with only the
+    native FFmpeg identity (Lavf53.32.100).  The portal MAC/Bearer/cookie
+    session is used to obtain create_link, but is not attached to the VOD CDN
+    requests.  Some CDN nodes reject those extra portal headers with 403.
+  */
+  const isVodMedia = /^(?:vod|series)(?::|$)/i.test(String(target.context || ""));
+  if (isVodMedia) {
+    delete requestHeaders.Cookie;
+    delete requestHeaders.Authorization;
+    delete requestHeaders["X-User-Agent"];
+    delete requestHeaders.Referer;
+    delete requestHeaders.Origin;
+  }
+
   for (let redirectCount = 0; redirectCount <= 6; redirectCount += 1) {
+    /* STBEmu asks FFmpeg for compressed playlists and identity-encoded TS
+       segments. Preserve the provider's custom host and port exactly. */
+    if (isVodMedia) {
+      requestHeaders["Accept-Encoding"] = /\.m3u8(?:$|\?)/i.test(currentUrl)
+        ? "gzip"
+        : "identity";
+    }
+
     const response = await fetch(currentUrl, {
       headers: requestHeaders,
       redirect: "manual",
@@ -2542,7 +2565,9 @@ async function fetchRelayUpstream(target, headers) {
 
     /* Native fetch/undici has no persistent cookie jar. Capture cookies from
        every CDN hop and send them on the next hop and later HLS requests. */
-    const responseCookies = extractSetCookiePairs(response.headers);
+    const responseCookies = isVodMedia
+      ? []
+      : extractSetCookiePairs(response.headers);
     if (responseCookies.length) {
       target.credentials ||= {};
       target.credentials.cookie = mergeCookieHeader(
@@ -2760,129 +2785,6 @@ async function relay(req, res, ticket) {
 }
 
 /* =====================================================
-   NATIVE PLAYER TEST
-
-   This intentionally bypasses the Chromium/HLS.js relay. Put mpv.exe in
-   resources/local-player/mpv/mpv.exe, or set NETPLUS_MPV_PATH. VLC is a
-   fallback, but MPV is preferred because it accepts the media User-Agent
-   and session Cookie headers used by the STB-style request.
-===================================================== */
-
-function findNativePlayer() {
-  const configured = process.env.NETPLUS_MPV_PATH?.trim();
-  const candidates = [
-    configured,
-    path.join(ROOT, "mpv.exe"),
-    path.join(ROOT, "mpv", "mpv.exe"),
-    path.join(ROOT, "vlc.exe"),
-    path.join(ROOT, "vlc", "vlc.exe"),
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    try {
-      if (fs.statSync(candidate).isFile()) {
-        return /vlc(?:\.exe)?$/i.test(candidate)
-          ? { type: "vlc", path: candidate }
-          : { type: "mpv", path: candidate };
-      }
-    } catch {}
-  }
-
-  return null;
-}
-
-function stopNativePlayback(context) {
-  const child = nativeProcesses.get(context);
-  if (!child) return;
-
-  try { child.kill(); } catch {}
-  nativeProcesses.delete(context);
-}
-
-function startNativePlayback(streamUrl, title, session, context) {
-  const player = findNativePlayer();
-
-  if (!player) {
-    throw new PlayerError(
-      "Native player is not installed. Put mpv.exe in the local-player/mpv folder.",
-      503
-    );
-  }
-
-  stopNativePlayback(context);
-
-  const safeTitle = String(title || "NetPlus Playback").replace(/[\r\n]/g, " ");
-  const cookieHeader = String(session?.cookie || "");
-  const authorization = session?.token ? `Bearer ${session.token}` : "";
-  let args;
-
-  if (player.type === "mpv") {
-    const headerFields = [
-      `Cookie: ${cookieHeader}`,
-      authorization ? `Authorization: ${authorization}` : "",
-    ].filter(Boolean).join(",");
-
-    args = [
-      "--force-window=yes",
-      "--cache=yes",
-      "--hwdec=auto-safe",
-      "--user-agent=Lavf53.32.100",
-      `--title=NetPlus - ${safeTitle}`,
-      ...(headerFields ? [`--http-header-fields=${headerFields}`] : []),
-      streamUrl,
-    ];
-  } else {
-    args = [
-      "--play-and-exit",
-      "--no-video-title-show",
-      `--http-user-agent=${MEDIA_USER_AGENT}`,
-      streamUrl,
-    ];
-  }
-
-  const child = spawn(player.path, args, {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: false,
-  });
-
-  nativeProcesses.set(context, child);
-
-  child.once("error", (error) => {
-    recordDiagnostic("native_player.error", {
-      context,
-      player: player.type,
-      message: error.message,
-    });
-    if (nativeProcesses.get(context) === child) nativeProcesses.delete(context);
-  });
-
-  child.once("exit", (code, signal) => {
-    recordDiagnostic("native_player.exit", {
-      context,
-      player: player.type,
-      code,
-      signal,
-    });
-    if (nativeProcesses.get(context) === child) nativeProcesses.delete(context);
-  });
-
-  child.unref();
-
-  recordDiagnostic("native_player.started", {
-    context,
-    player: player.type,
-    title: safeTitle,
-  });
-
-  return {
-    ok: true,
-    player: player.type,
-    message: `${player.type.toUpperCase()} opened for ${safeTitle}.`,
-  };
-}
-
-/* =====================================================
    ROUTES
 ===================================================== */
 
@@ -3087,103 +2989,6 @@ async function handle(req, res) {
         Number(season),
         String(episodeId)
       )
-    );
-  }
-
-  if (req.method === "POST" && requestUrl.pathname === "/api/native/live") {
-    const body = await readJson(req);
-
-    if (typeof body.channelId !== "string") {
-      throw new PlayerError("Choose a valid channel.", 400);
-    }
-
-    const streamUrl = await getStreamUrl(body.channelId);
-    const session = (await activeCatalog()).session;
-
-    return json(
-      res,
-      200,
-      startNativePlayback(streamUrl, body.title || "Live TV", session, "live")
-    );
-  }
-
-  if (req.method === "POST" && requestUrl.pathname === "/api/native/vod") {
-    const body = await readJson(req);
-
-    if (
-      typeof body.categoryId !== "string" ||
-      typeof body.itemId !== "string"
-    ) {
-      throw new PlayerError("Choose a valid movie.", 400);
-    }
-
-    const streamUrl = await getVodStreamUrl(
-      body.categoryId,
-      body.itemId,
-      typeof body.qualityId === "string" ? body.qualityId : ""
-    );
-    const session = (await activeCatalog()).session;
-
-    return json(
-      res,
-      200,
-      startNativePlayback(streamUrl, body.title || "Movie", session, "vod")
-    );
-  }
-
-  if (
-    req.method === "POST" &&
-    requestUrl.pathname === "/api/native/vod/episode"
-  ) {
-    const body = await readJson(req);
-
-    if (
-      typeof body.categoryId !== "string" ||
-      typeof body.itemId !== "string" ||
-      body.season == null ||
-      body.episodeId == null
-    ) {
-      throw new PlayerError("Choose a valid episode.", 400);
-    }
-
-    const streamUrl = await getCombinedVodEpisodeStream(
-      body.categoryId,
-      body.itemId,
-      Number(body.season),
-      String(body.episodeId),
-      typeof body.qualityId === "string" ? body.qualityId : ""
-    );
-    const session = (await activeCatalog()).session;
-
-    return json(
-      res,
-      200,
-      startNativePlayback(streamUrl, body.title || "Episode", session, "vod")
-    );
-  }
-
-  if (req.method === "POST" && requestUrl.pathname === "/api/native/series") {
-    const body = await readJson(req);
-
-    if (
-      typeof body.seriesId !== "string" ||
-      body.season == null ||
-      body.episodeId == null
-    ) {
-      throw new PlayerError("Choose a valid episode.", 400);
-    }
-
-    const streamUrl = await getSeriesEpisodeStream(
-      body.seriesId,
-      Number(body.season),
-      String(body.episodeId)
-    );
-    const session = (await activeCatalog()).session;
-
-    return json(
-      res,
-      200,
-      startNativePlayback(streamUrl, body.title || "Series Episode", session, "series")
     );
   }
 
