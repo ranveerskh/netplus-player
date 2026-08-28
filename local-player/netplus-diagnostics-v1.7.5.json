@@ -1,0 +1,3863 @@
+{
+  "version": "1.7.5",
+  "startedAt": "2026-08-28T03:01:20.456Z",
+  "events": [
+    {
+      "at": "2026-08-28T03:01:45.025Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_categories"
+        },
+        "status": 200,
+        "elapsedMs": 1165,
+        "response": {
+          "js": {
+            "_type": "array",
+            "count": 80,
+            "sample": [
+              {
+                "id": "*",
+                "title": "All",
+                "alias": "*",
+                "censored": 0
+              },
+              {
+                "id": "10",
+                "title": "ENGLISH TV SHOWS",
+                "alias": "ENGLISH_TV_SERIES",
+                "censored": 0
+              },
+              {
+                "id": "160",
+                "title": "NETFLIX ENGLISH SHOWS",
+                "alias": "NETFLIX__ENGLISH_SERIES",
+                "censored": 0
+              }
+            ]
+          },
+          "text": "generated in: 1.082s; query counter: 16; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:45.916Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "*",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 879,
+        "response": {
+          "js": {
+            "total_items": "127688",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "199037",
+                  "owner": "",
+                  "name": "Ary Digital: Tamasha",
+                  "old_name": "",
+                  "o_name": "Ary Digital: Tamasha",
+                  "fname": "",
+                  "description": "",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Ary_Digital_Tamasha_2022",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "29",
+                  "genre_id": "0",
+                  "genre_id_1": "0",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "68",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "333827",
+                  "owner": "",
+                  "name": "X The League (Eng Subtitle)",
+                  "old_name": "",
+                  "o_name": "X The League (Eng Subtitle)",
+                  "fname": "",
+                  "description": "Top live commerce sellers from nine countries, including Korea, compete in a high-stakes global showdown where real-time sales decide their fate. Facing intense…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "X_The_League_-_lbrac_-Eng_Subtitle-_rbrac_-_Korean",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "149",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "288",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "Lee hye-ok",
+                  "actors": "Tiffany Young, BamBam",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "335131",
+                  "owner": "",
+                  "name": "Take a Hike (Eng Subtitle)",
+                  "old_name": "",
+                  "o_name": "Take a Hike (Eng Subtitle)",
+                  "fname": "",
+                  "description": "Four celebrity hiking newbies end up forming a club to tackle Korea's snow‑capped peaks. Can they figure out why on earth people go to the mountains?",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Take_a_Hike_-_lbrac_-Eng_Subtitle-_rbrac_-_Korean",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "149",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "288",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Car, the garden, DOWOON, Lee Chae-min, Tarzzan",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.821s; query counter: 70; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:46.965Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "10",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1009,
+        "response": {
+          "js": {
+            "total_items": "10217",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "274984",
+                  "owner": "",
+                  "name": "WWE LFG",
+                  "old_name": "",
+                  "o_name": "WWE LFG",
+                  "fname": "",
+                  "description": "Take an inside look at what it truly takes to make it in the WWE. Iconic WWE Legends such as Paul \"Triple H\" Levesque and Shawn Michaels and weekly regular coac…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "0",
+                  "file": "",
+                  "path": "WWE_LFG_English_2025",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "10",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "164",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Paul Lévesque, Michael Hickenbottom, Booker Huffman, Jr., Mickie James, Mark Calaway, Mark LoMonaco",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "335660",
+                  "owner": "",
+                  "name": "Totally 90s House",
+                  "old_name": "",
+                  "o_name": "Totally 90s House",
+                  "fname": "",
+                  "description": "Follows two teams of '90s television idols with a passion for design and renovation as they scour the country for houses stuck in the 1990s - think honey oak ca…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "0",
+                  "file": "",
+                  "path": "Totally_90s_House_English_2026",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "10",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "164",
+                  "cat_genre_id_2": "328",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Jaleel White, Beverley Mitchell, Brian Austin Green, Jodie Sweetin, Keshia Knight Pulliam, Matthew Lawrence, Melissa Joan Hart",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "134966",
+                  "owner": "",
+                  "name": "The Yorkshire Auction House",
+                  "old_name": "",
+                  "o_name": "The Yorkshire Auction House",
+                  "fname": "",
+                  "description": "Observational documentary series following auctioneer Angus Ashworth and his staff throughout the process from house viewings to auction day as they travel arou…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "The_Yorkshire_Auction_House_2021",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "10",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "164",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Angus Ashworth",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.872s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:48.019Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "160",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1024,
+        "response": {
+          "js": {
+            "total_items": "538",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "305044",
+                  "owner": "",
+                  "name": "Married at First Sight",
+                  "old_name": "Married at First Sight US (OTT)",
+                  "o_name": "Married at First Sight",
+                  "fname": "",
+                  "description": "The cart comes way before the horse in the reality series \"Married at First Sight.\" Based on a hit Danish format, \"Married...\" features people who agree to part…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Married_at_First_Sight_2022",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "160",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1300",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Dr. Joseph Cilona, Dr. Logan Levkoff, Greg Epstein, Pepper Schwartz",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "294480",
+                  "owner": "",
+                  "name": "Leanne",
+                  "old_name": "Leanne (OTT)",
+                  "o_name": "Leanne",
+                  "fname": "",
+                  "description": "When her husband leaves her for another woman, a resilient Southern mom starts over with the support of her loving, but unfiltered family.",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Leanne_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "160",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1283",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Leanne Morgan, Kristen Johnston, Celia Weston, Blake Clark, Ryan Stiles, Graham Rogers, Hannah Pilkes",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "299479",
+                  "owner": "",
+                  "name": "Beauty in Black",
+                  "old_name": "Beauty in Black (OTT)",
+                  "o_name": "Beauty in Black",
+                  "fname": "",
+                  "description": "A stripper's fate takes a turn when she crosses paths with the wealthy, dysfunctional family behind a cosmetics dynasty and a devious trafficking scheme.",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Beauty_in_Black_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "160",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1300",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Taylor Polidore, Crystle Stewart, Amber Reign Smith, Xavier Smalls, Julian Horton, Steven G. Norfleet, Richard Lawson, Terrell Carter",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.952s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:48.912Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "158",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 874,
+        "response": {
+          "js": {
+            "total_items": "1024",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "315653",
+                  "owner": "",
+                  "name": "Booked: First Day In",
+                  "old_name": "Booked First Day In en -all (OTT)",
+                  "o_name": "Booked: First Day In",
+                  "fname": "",
+                  "description": "Follows arrested individuals through America’s booking process, offering an extraordinary look at the most unusual, bizarre and often tense bookings. Each episo…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Booked-_colon_-_First_Day_In_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "158",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1230",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "291454",
+                  "owner": "",
+                  "name": "Homes Under the Hammer",
+                  "old_name": "Homes Under the Hammer (OTT)",
+                  "o_name": "Homes Under the Hammer",
+                  "fname": "",
+                  "description": "Homes Under the Hammer is a British renovation and auction series that originally screened on BBC One as part of the BBC's morning television schedule, the seri…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Homes_Under_the_Hammer_English_2025",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "158",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "0",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Martin Roberts, Dion Dublin, Martel Maxwell, Jacqui Joseph",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "293394",
+                  "owner": "",
+                  "name": "Fake or Fortune?",
+                  "old_name": "Fake or Fortune? en (OTT)",
+                  "o_name": "Fake or Fortune?",
+                  "fname": "",
+                  "description": "Journalist Fiona Bruce teams up with art expert Philip Mould to investigate the provenance or attribution of notable artworks.",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Fake_or_Fortune-_question_-_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "158",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1230",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Fiona Bruce, Philip Mould",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.752s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:49.801Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "162",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 873,
+        "response": {
+          "js": {
+            "total_items": "326",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "324388",
+                  "owner": "",
+                  "name": "Miraculous: Tales of Ladybug & Cat Noir",
+                  "old_name": "Miraculous: Tales of Ladybug and Cat Noir (OTT)",
+                  "o_name": "Miraculous: Tales of Ladybug & Cat Noir",
+                  "fname": "",
+                  "description": "Normal high school kids by day, protectors of Paris by night! Miraculous follows the heroic adventures of Marinette and Adrien as they transform into Ladybug an…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Miraculous_Tales_of_Ladybug_and_Cat_Noir_2019",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "162",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1344",
+                  "cat_genre_id_2": "1354",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Annouck Hautbois, Benjamin Bollen, Marie Nonnenmacher, Thierry Kazazian, Antoine Tomé, Fanny Bloc, Alexandre N'Guyen, Marie Chevalot",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "315656",
+                  "owner": "",
+                  "name": "Booked: First Day In",
+                  "old_name": "Booked First Day In en -all (OTT)",
+                  "o_name": "Booked: First Day In",
+                  "fname": "",
+                  "description": "Follows arrested individuals through America’s booking process, offering an extraordinary look at the most unusual, bizarre and often tense bookings. Each episo…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Booked-_colon_-_First_Day_In_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "162",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1334",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "297252",
+                  "owner": "",
+                  "name": "Expedition X",
+                  "old_name": "Expedition X -all (OTT)",
+                  "o_name": "Expedition X",
+                  "fname": "",
+                  "description": "Whether trekking through the remote jungles of Cambodia in search of a legendary ape-man or exploring the secrets of the world’s largest cave system right here …",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Expedition_X_2021",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "162",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "0",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Josh Gates",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.808s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:50.979Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "164",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1145,
+        "response": {
+          "js": {
+            "total_items": "1250",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "315654",
+                  "owner": "",
+                  "name": "Booked: First Day In",
+                  "old_name": "Booked First Day In en -all (OTT)",
+                  "o_name": "Booked: First Day In",
+                  "fname": "",
+                  "description": "Follows arrested individuals through America’s booking process, offering an extraordinary look at the most unusual, bizarre and often tense bookings. Each episo…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Booked-_colon_-_First_Day_In_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "164",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1386",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "293862",
+                  "owner": "",
+                  "name": "Homes Under the Hammer",
+                  "old_name": "Homes Under the Hammer (OTT)",
+                  "o_name": "Homes Under the Hammer",
+                  "fname": "",
+                  "description": "Homes Under the Hammer is a British renovation and auction series that originally screened on BBC One as part of the BBC's morning television schedule, the seri…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Homes_Under_the_Hammer_English_2025",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "164",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "0",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Martin Roberts, Dion Dublin, Martel Maxwell, Jacqui Joseph",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "333737",
+                  "owner": "",
+                  "name": "EONS: LIFE AND DEATH ON PANGEA",
+                  "old_name": "EONS: LIFE AND DEATH ON PANGEA (OTT)",
+                  "o_name": "EONS: LIFE AND DEATH ON PANGEA",
+                  "fname": "",
+                  "description": "",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "EONS-_colon_-_LIFE_AND_DEATH_ON_PANGEA_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "164",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1386",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.975s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:51.784Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "166",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 786,
+        "response": {
+          "js": {
+            "total_items": "728",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "315655",
+                  "owner": "",
+                  "name": "Booked: First Day In",
+                  "old_name": "Booked First Day In en -all (OTT)",
+                  "o_name": "Booked: First Day In",
+                  "fname": "",
+                  "description": "Follows arrested individuals through America’s booking process, offering an extraordinary look at the most unusual, bizarre and often tense bookings. Each episo…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Booked-_colon_-_First_Day_In_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "166",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1438",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "293649",
+                  "owner": "",
+                  "name": "911: Did the Killer Call?",
+                  "old_name": "911: Did The Killer Call? (OTT)",
+                  "o_name": "911: Did the Killer Call?",
+                  "fname": "",
+                  "description": "Three horrific murders. Three different 911 calls. All three callers claim they’re innocent — but for the police, the call can reveal so much more than just the…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "911-_colon_-_Did_the_Killer_Call-_question_-_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "166",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1438",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "293368",
+                  "owner": "",
+                  "name": "WWE LFG",
+                  "old_name": "WWE LFG (OTT)",
+                  "o_name": "WWE LFG",
+                  "fname": "",
+                  "description": "Take an inside look at what it truly takes to make it in the WWE. Iconic WWE Legends such as Paul \"Triple H\" Levesque and Shawn Michaels and weekly regular coac…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "WWE_LFG_English_2025",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "166",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "0",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Paul Lévesque, Michael Hickenbottom, Booker Huffman, Jr., Mickie James, Mark Calaway, Mark LoMonaco",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.612s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:52.903Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "168",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1091,
+        "response": {
+          "js": {
+            "total_items": "316",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "289294",
+                  "owner": "",
+                  "name": "The Young and the Restless",
+                  "old_name": "The Young and the Restless (OTT)",
+                  "o_name": "The Young and the Restless",
+                  "fname": "",
+                  "description": "The rivalries, romances, hopes and fears of the residents of the fictional Midwestern metropolis, Genoa City. The lives and loves of a wide variety of character…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "The_Young_and_the_Restless_2021",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "168",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1508",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Doug Davidson, Cait Fairbanks, Tammin Sursok, Linden Ashby, Camryn Grimes, Anne Betancourt, Michael Damian, Don Diamont",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "292733",
+                  "owner": "",
+                  "name": "Big Brother US",
+                  "old_name": "Big Brother US -all (OTT)",
+                  "o_name": "Big Brother US",
+                  "fname": "",
+                  "description": "American version of the reality game show which follows a group of HouseGuests living together 24 hours a day in the \"Big Brother\" house, isolated from the outs…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "BIG_BROTHER_US_2021",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "168",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1508",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Julie Chen Moonves",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "300687",
+                  "owner": "",
+                  "name": "The Bold and the Beautiful",
+                  "old_name": "The Bold and the Beautiful (OTT)",
+                  "o_name": "The Bold and the Beautiful",
+                  "fname": "",
+                  "description": "Continuing drama combining romance and intrigue set against the glittering backdrop of Beverly Hills and the American fashion industry.",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "The_Bold_and_the_Beautiful_English_2025",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "168",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1508",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Katherine Kelly Lang, John McCook",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.948s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:53.973Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "170",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1042,
+        "response": {
+          "js": {
+            "total_items": "357",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "293650",
+                  "owner": "",
+                  "name": "911: Did the Killer Call?",
+                  "old_name": "911: Did The Killer Call? (OTT)",
+                  "o_name": "911: Did the Killer Call?",
+                  "fname": "",
+                  "description": "Three horrific murders. Three different 911 calls. All three callers claim they’re innocent — but for the police, the call can reveal so much more than just the…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "911-_colon_-_Did_the_Killer_Call-_question_-_English",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "170",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1542",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "297254",
+                  "owner": "",
+                  "name": "Expedition X",
+                  "old_name": "Expedition X -all (OTT)",
+                  "o_name": "Expedition X",
+                  "fname": "",
+                  "description": "Whether trekking through the remote jungles of Cambodia in search of a legendary ape-man or exploring the secrets of the world’s largest cave system right here …",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Expedition_X_2021",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "170",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "0",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Josh Gates",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "292621",
+                  "owner": "",
+                  "name": "Guys Grocery Games",
+                  "old_name": "Guy's Grocery Games-all (OTT)",
+                  "o_name": "Guys Grocery Games",
+                  "fname": "",
+                  "description": "Guy Fieri sends four talented chefs running through the aisles in a high stakes, high skills, grocery store cooking competition. The chefs are hit by real-world…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Guys_Grocery_Games_English_2022",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "170",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "0",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Guy Fieri",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.965s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:54.731Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "172",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 741,
+        "response": {
+          "js": {
+            "total_items": "211",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "284270",
+                  "owner": "",
+                  "name": "WWE LFG",
+                  "old_name": "WWE LFG (OTT)",
+                  "o_name": "WWE LFG",
+                  "fname": "",
+                  "description": "Take an inside look at what it truly takes to make it in the WWE. Iconic WWE Legends such as Paul \"Triple H\" Levesque and Shawn Michaels and weekly regular coac…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "WWE_LFG_English_2025",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "172",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "0",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Paul Lévesque, Michael Hickenbottom, Booker Huffman, Jr., Mickie James, Mark Calaway, Mark LoMonaco",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "333556",
+                  "owner": "",
+                  "name": "The Ark",
+                  "old_name": "The Ark en (OTT)",
+                  "o_name": "The Ark",
+                  "fname": "",
+                  "description": "100 years in the future, planetary colonization missions have begun as a necessity to help secure the survival of the human race. The first of these missions on…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "The_Ark_English_2023",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "172",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1608",
+                  "cat_genre_id_2": "1616",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Stacey Read, Christina Wolfe, Pavle Jerinić, Shalini Peiris, Christie Burke, Richard Fleeshman, Tijana Upčev, Reece Ritchie",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "300688",
+                  "owner": "",
+                  "name": "The Bold and the Beautiful",
+                  "old_name": "The Bold and the Beautiful (OTT)",
+                  "o_name": "The Bold and the Beautiful",
+                  "fname": "",
+                  "description": "Continuing drama combining romance and intrigue set against the glittering backdrop of Beverly Hills and the American fashion industry.",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "The_Bold_and_the_Beautiful_English_2025",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "172",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "1612",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Katherine Kelly Lang, John McCook",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.592s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:55.929Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "1",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1173,
+        "response": {
+          "js": {
+            "total_items": "7988",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "335656",
+                  "owner": "",
+                  "name": "The Knock Knock Man",
+                  "old_name": "",
+                  "o_name": "The Knock Knock Man",
+                  "fname": "",
+                  "description": "A group of teens dare each other to summon a mysterious figure from an old urban legend but what was suppose to be a harmless game turns deadly when one of them…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "75",
+                  "file": "",
+                  "path": "The_Knock_Knock_Man_en_2026",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "1",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "35",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "Joseph Mazzaferro",
+                  "actors": "Ty Bialik, Kamryn Emory, Jess Gluzband, Callie Grayson, Aaron Idlis, Jennifer Janette, Austin Janowsky, Gerard Murray",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "335655",
+                  "owner": "",
+                  "name": "Killer Curve",
+                  "old_name": "",
+                  "o_name": "Killer Curve",
+                  "fname": "",
+                  "description": "After her brother is murdered, Jade Carter uncovers a secret list linking powerful elites to a deadly conspiracy. As corrupt forces close in, she must outsmart …",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "63",
+                  "file": "",
+                  "path": "Killer_Curve_en_2026",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "1",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "34",
+                  "cat_genre_id_2": "33",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "Ejay Jamison",
+                  "actors": "Nikia \"Kia B\" Briggs, Kaamel Hasaun, Joseph Mason, Stacy Okafor",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "335654",
+                  "owner": "",
+                  "name": "H2O: The Intelligence Of Water",
+                  "old_name": "",
+                  "o_name": "H2O: The Intelligence Of Water",
+                  "fname": "",
+                  "description": "Water is essential for all life on earth, but also holds many untold secrets. Join scientists, authors, and healers as they explore the relationship between wat…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "73",
+                  "file": "",
+                  "path": "H2O_The_Intelligence_Of_Water_en_2025",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "1",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "30",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "Emmanuel Itier",
+                  "actors": "William Arntz, Arthur Von Wiesenberger, John Etgen, Deidre Hade, William Brown",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 1.098s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:01:57.068Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "9",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1112,
+        "response": {
+          "js": {
+            "total_items": "32451",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "335637",
+                  "owner": "",
+                  "name": "Ant-Man and the Wasp: Quantumania",
+                  "old_name": "Ant-Man and the Wasp Quantumania en (OTT)",
+                  "o_name": "Ant-Man and the Wasp: Quantumania",
+                  "fname": "",
+                  "description": "Super-Hero partners Scott Lang and Hope van Dyne, along with with Hope's parents Janet van Dyne and Hank Pym, and Scott's daughter Cassie Lang, find themselves …",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "125",
+                  "file": "",
+                  "path": "Ant-Man_and_the_Wasp_Quantumania_en_2023",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "9",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "136",
+                  "cat_genre_id_2": "304",
+                  "cat_genre_id_3": "307",
+                  "cat_genre_id_4": "0",
+                  "director": "Peyton Reed",
+                  "actors": "Paul Rudd, Evangeline Lilly, Jonathan Majors, Kathryn Newton, Michelle Pfeiffer, Michael Douglas, Corey Stoll, Bill Murray",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "335643",
+                  "owner": "",
+                  "name": "Ant-Man and the Wasp",
+                  "old_name": "",
+                  "o_name": "Ant-Man and the Wasp",
+                  "fname": "",
+                  "description": "Just when his time under house arrest is about to end, Scott Lang once again puts his freedom at risk to help Hope van Dyne and Dr. Hank Pym dive into the quant…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "119",
+                  "file": "",
+                  "path": "Ant-Man_and_the_Wasp_en_2018",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "9",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "136",
+                  "cat_genre_id_2": "304",
+                  "cat_genre_id_3": "307",
+                  "cat_genre_id_4": "0",
+                  "director": "Peyton Reed",
+                  "actors": "Paul Rudd, Evangeline Lilly, Michael Douglas, Hannah John-Kamen, Randall Park, Michelle Pfeiffer, Laurence Fishburne, Michael Peña",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "209862",
+                  "owner": "",
+                  "name": "Ant-Man",
+                  "old_name": "",
+                  "o_name": "Ant-Man",
+                  "fname": "",
+                  "description": "Armed with the astonishing ability to shrink in scale but increase in strength, master thief Scott Lang must embrace his inner-hero and help his mentor, Doctor …",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "117",
+                  "file": "",
+                  "path": "Ant-Man_en_2015",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "9",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "136",
+                  "cat_genre_id_2": "304",
+                  "cat_genre_id_3": "307",
+                  "cat_genre_id_4": "0",
+                  "director": "Peyton Reed",
+                  "actors": "Paul Rudd, Michael Douglas, Evangeline Lilly, Bobby Cannavale, Corey Stoll, Anthony Mackie, Judy Greer, Abby Ryder Fortson",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 1.035s; query counter: 67; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.598Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_vod_info",
+          "movie_id": "199821",
+          "vod_id": "199821"
+        },
+        "status": 200,
+        "elapsedMs": 116,
+        "response": {
+          "js": false,
+          "text": "generated in: 0.027s; query counter: 2; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.686Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "9",
+          "movie_id": "199821",
+          "season_id": "0",
+          "episode_id": "0",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 83,
+        "response": {
+          "js": {
+            "total_items": "1",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 1,
+              "sample": [
+                {
+                  "id": "1348444",
+                  "video_id": "199821",
+                  "series_id": null,
+                  "file_type": "video",
+                  "protocol": "custom",
+                  "url": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8",
+                  "file_name": "",
+                  "languages": "a:1:{i:0;s:2:\"en\";}",
+                  "quality": "6",
+                  "volume_level": "0",
+                  "accessed": "1",
+                  "status": "1",
+                  "date_add": "2022-09-08 12:17:46",
+                  "date_modify": "2022-09-08 12:17:46",
+                  "tmp_link_type": "flussonic",
+                  "for_rent": 0,
+                  "name": "English / Excellent quality (1080)",
+                  "is_file": true,
+                  "cmd": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8"
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.031s; query counter: 14; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.690Z",
+      "event": "vod.hierarchy_resolved",
+      "details": {
+        "movieId": "199821",
+        "category": "9",
+        "seasonId": "0",
+        "episodeId": "0",
+        "page": 0,
+        "rowCount": 1,
+        "rows": {
+          "_type": "array",
+          "count": 1,
+          "sample": [
+            {
+              "id": "1348444",
+              "video_id": "199821",
+              "series_id": null,
+              "file_type": "video",
+              "protocol": "custom",
+              "url": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8",
+              "file_name": "",
+              "languages": "a:1:{i:0;s:2:\"en\";}",
+              "quality": "6",
+              "volume_level": "0",
+              "accessed": "1",
+              "status": "1",
+              "date_add": "2022-09-08 12:17:46",
+              "date_modify": "2022-09-08 12:17:46",
+              "tmp_link_type": "flussonic",
+              "for_rent": 0,
+              "name": "English / Excellent quality (1080)",
+              "is_file": true,
+              "cmd": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.788Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "series",
+          "action": "get_ordered_list",
+          "movie_id": "199821",
+          "series_id": "199821",
+          "p": 0
+        },
+        "status": 200,
+        "elapsedMs": 95,
+        "response": {
+          "js": false,
+          "text": "generated in: 0.025s; query counter: 2; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.884Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "series",
+          "action": "get_series_info",
+          "series_id": "199821",
+          "movie_id": "199821"
+        },
+        "status": 200,
+        "elapsedMs": 93,
+        "response": {
+          "js": false,
+          "text": "generated in: 0.026s; query counter: 2; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.982Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_vod_info",
+          "movie_id": "199821",
+          "vod_id": "199821",
+          "series_id": "199821"
+        },
+        "status": 200,
+        "elapsedMs": 93,
+        "response": {
+          "js": false,
+          "text": "generated in: 0.027s; query counter: 2; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.984Z",
+      "event": "series.info_normalized",
+      "details": {
+        "mediaIds": {
+          "_type": "array",
+          "count": 1,
+          "sample": [
+            "199821"
+          ]
+        },
+        "seasonCount": 0,
+        "episodeCounts": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "info": {
+          "js": false,
+          "text": "generated in: 0.025s; query counter: 2; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:19.985Z",
+      "event": "vod.detail_normalized",
+      "details": {
+        "categoryId": "9",
+        "itemId": "199821",
+        "title": "Thor: Love and Thunder",
+        "kind": "vod",
+        "seasonCount": 0,
+        "info": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:20.413Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "*",
+          "p": 1,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 893,
+        "response": {
+          "js": {
+            "total_items": "127688",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "199037",
+                  "owner": "",
+                  "name": "Ary Digital: Tamasha",
+                  "old_name": "",
+                  "o_name": "Ary Digital: Tamasha",
+                  "fname": "",
+                  "description": "",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Ary_Digital_Tamasha_2022",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "29",
+                  "genre_id": "0",
+                  "genre_id_1": "0",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "68",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "333827",
+                  "owner": "",
+                  "name": "X The League (Eng Subtitle)",
+                  "old_name": "",
+                  "o_name": "X The League (Eng Subtitle)",
+                  "fname": "",
+                  "description": "Top live commerce sellers from nine countries, including Korea, compete in a high-stakes global showdown where real-time sales decide their fate. Facing intense…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "X_The_League_-_lbrac_-Eng_Subtitle-_rbrac_-_Korean",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "149",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "288",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "Lee hye-ok",
+                  "actors": "Tiffany Young, BamBam",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "335131",
+                  "owner": "",
+                  "name": "Take a Hike (Eng Subtitle)",
+                  "old_name": "",
+                  "o_name": "Take a Hike (Eng Subtitle)",
+                  "fname": "",
+                  "description": "Four celebrity hiking newbies end up forming a club to tackle Korea's snow‑capped peaks. Can they figure out why on earth people go to the mountains?",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Take_a_Hike_-_lbrac_-Eng_Subtitle-_rbrac_-_Korean",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "149",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "288",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "Car, the garden, DOWOON, Lee Chae-min, Tarzzan",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.817s; query counter: 70; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:21.776Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "*",
+          "p": 2,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 1140,
+        "response": {
+          "js": {
+            "total_items": "127688",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "335676",
+                  "owner": "",
+                  "name": "Zee Hindi: Hasratein",
+                  "old_name": "",
+                  "o_name": "Zee Hindi: Hasratein",
+                  "fname": "",
+                  "description": "",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Zee_Hindi_Hasratein_2026",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "15",
+                  "genre_id": "0",
+                  "genre_id_1": "0",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "65",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "7685",
+                  "owner": "",
+                  "name": "Shubh Mangal Zyada Saavdhan",
+                  "old_name": "",
+                  "o_name": "Shubh Mangal Zyada Saavdhan",
+                  "fname": "",
+                  "description": "Presenting the life of two gay men who are in love, Shubh Mangal Zyada Saavdhan depicts their struggle to convince their families to accept the relationship. Bu…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "117",
+                  "file": "",
+                  "path": "Shubh_Mangal_Zyada_Saavdhan_HD_2020",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "20",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "29",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "Hitesh Kewalya",
+                  "actors": "Ayushmann Khurrana, Jitendra Kumar, Neena Gupta, Gajraj Rao, Deepak Tijori, Zoha Rahman, Sahil Mehta",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "7703",
+                  "owner": "",
+                  "name": "Street Dancer 3D",
+                  "old_name": "",
+                  "o_name": "Street Dancer 3D",
+                  "fname": "",
+                  "description": "Two rival dance groups from India and Pakistan who are always competing against each other, join forces when it comes to competing at an international dance com…",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "146",
+                  "file": "",
+                  "path": "Street_Dancer_3D_HD_2020",
+                  "protocol": "",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "20",
+                  "genre_id": "0",
+                  "genre_id_1": "1",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "29",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "Remo D'Souza",
+                  "actors": "Varun Dhawan, Shraddha Kapoor, Nora Fatehi, Prabhu Deva, Punit Pathak, Dharmesh Yelande, Salman Yusuff Khan, Aparshakti Khurana",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 1.068s; query counter: 70; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:22.901Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "9",
+          "movie_id": "199821",
+          "season_id": "0",
+          "episode_id": "0",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 90,
+        "response": {
+          "js": {
+            "total_items": "1",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 1,
+              "sample": [
+                {
+                  "id": "1348444",
+                  "video_id": "199821",
+                  "series_id": null,
+                  "file_type": "video",
+                  "protocol": "custom",
+                  "url": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8",
+                  "file_name": "",
+                  "languages": "a:1:{i:0;s:2:\"en\";}",
+                  "quality": "6",
+                  "volume_level": "0",
+                  "accessed": "1",
+                  "status": "1",
+                  "date_add": "2022-09-08 12:17:46",
+                  "date_modify": "2022-09-08 12:17:46",
+                  "tmp_link_type": "flussonic",
+                  "for_rent": 0,
+                  "name": "English / Excellent quality (1080)",
+                  "is_file": true,
+                  "cmd": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8"
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.027s; query counter: 14; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:22.903Z",
+      "event": "vod.hierarchy_resolved",
+      "details": {
+        "movieId": "199821",
+        "category": "9",
+        "seasonId": "0",
+        "episodeId": "0",
+        "page": 0,
+        "rowCount": 1,
+        "rows": {
+          "_type": "array",
+          "count": 1,
+          "sample": [
+            {
+              "id": "1348444",
+              "video_id": "199821",
+              "series_id": null,
+              "file_type": "video",
+              "protocol": "custom",
+              "url": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8",
+              "file_name": "",
+              "languages": "a:1:{i:0;s:2:\"en\";}",
+              "quality": "6",
+              "volume_level": "0",
+              "accessed": "1",
+              "status": "1",
+              "date_add": "2022-09-08 12:17:46",
+              "date_modify": "2022-09-08 12:17:46",
+              "tmp_link_type": "flussonic",
+              "for_rent": 0,
+              "name": "English / Excellent quality (1080)",
+              "is_file": true,
+              "cmd": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:26.573Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "9",
+          "movie_id": "199821",
+          "season_id": "0",
+          "episode_id": "0",
+          "p": 0,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 137,
+        "response": {
+          "js": {
+            "total_items": "1",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 1,
+              "sample": [
+                {
+                  "id": "1348444",
+                  "video_id": "199821",
+                  "series_id": null,
+                  "file_type": "video",
+                  "protocol": "custom",
+                  "url": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8",
+                  "file_name": "",
+                  "languages": "a:1:{i:0;s:2:\"en\";}",
+                  "quality": "6",
+                  "volume_level": "0",
+                  "accessed": "1",
+                  "status": "1",
+                  "date_add": "2022-09-08 12:17:46",
+                  "date_modify": "2022-09-08 12:17:46",
+                  "tmp_link_type": "flussonic",
+                  "for_rent": 0,
+                  "name": "English / Excellent quality (1080)",
+                  "is_file": true,
+                  "cmd": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8"
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.03s; query counter: 14; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:26.576Z",
+      "event": "vod.hierarchy_resolved",
+      "details": {
+        "movieId": "199821",
+        "category": "9",
+        "seasonId": "0",
+        "episodeId": "0",
+        "page": 0,
+        "rowCount": 1,
+        "rows": {
+          "_type": "array",
+          "count": 1,
+          "sample": [
+            {
+              "id": "1348444",
+              "video_id": "199821",
+              "series_id": null,
+              "file_type": "video",
+              "protocol": "custom",
+              "url": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8",
+              "file_name": "",
+              "languages": "a:1:{i:0;s:2:\"en\";}",
+              "quality": "6",
+              "volume_level": "0",
+              "accessed": "1",
+              "status": "1",
+              "date_add": "2022-09-08 12:17:46",
+              "date_modify": "2022-09-08 12:17:46",
+              "tmp_link_type": "flussonic",
+              "for_rent": 0,
+              "name": "English / Excellent quality (1080)",
+              "is_file": true,
+              "cmd": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:26.582Z",
+      "event": "vod.create_command_mapped",
+      "details": {
+        "originalCommand": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8",
+        "freshCommand": "/media/file_1348444.mpg",
+        "fileId": "1348444",
+        "seasonId": "0",
+        "episodeId": "0"
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:26.673Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "create_link",
+          "cmd": "/media/file_1348444.mpg",
+          "series": "0",
+          "forced_storage": "undefined",
+          "disable_ad": "0",
+          "download": "0"
+        },
+        "status": 200,
+        "elapsedMs": 87,
+        "response": {
+          "js": {
+            "id": 199821,
+            "cmd": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8?[redacted]",
+            "storage_id": "",
+            "load": "",
+            "error": "",
+            "subtitles": {
+              "_type": "array",
+              "count": 0,
+              "sample": []
+            }
+          },
+          "text": "array(6) {\n  [\"id\"]=>\n  int(199821)\n  [\"cmd\"]=>\n  string(229) \"http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8?[redacted]\n  [\"storage_id\"]=>\n  string(0) \"\"\n  [\"load\"]=>\n  string(0) \"\"\n  [\"error\"]=>\n  string(0) \"\"\n  [\"subtitles\"]=>\n  array(0) {\n  }\n}\ngenerated in: 0.035s; query counter: 36; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:26.677Z",
+      "event": "vod.playback_link",
+      "details": {
+        "itemId": "199821",
+        "title": "Thor: Love and Thunder",
+        "command": "/media/file_1348444.mpg",
+        "returnedLink": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8?[redacted]",
+        "streamUrl": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8?[redacted]"
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:26.958Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 1,
+          "sample": [
+            {
+              "from": "http://uu155adb.vtcdn.cc:55026/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8?[redacted]",
+              "to": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/video.m3u8?[redacted]",
+              "status": 301
+            }
+          ]
+        },
+        "status": 200,
+        "elapsedMs": 268,
+        "contentType": "application/vnd.apple.mpegurl",
+        "contentLength": "209",
+        "isManifest": true,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:26.970Z",
+      "event": "client.vod_manifest_parsed",
+      "details": {
+        "itemId": "199821",
+        "title": "Thor: Love and Thunder"
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.040Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/mono.m3u8?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 67,
+        "contentType": "application/vnd.apple.mpegurl",
+        "contentLength": "5463",
+        "isManifest": true,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.161Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment1.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 59,
+        "contentType": "video/MP2T",
+        "contentLength": "159424",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.314Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment1.ts?[redacted]",
+        "elapsedMs": 212
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.414Z",
+      "event": "client.vod_hls_error",
+      "details": {
+        "itemId": "199821",
+        "title": "Thor: Love and Thunder",
+        "type": "mediaError",
+        "details": "bufferSeekOverHole",
+        "fatal": false,
+        "reason": "fragment loaded with buffer holes, seeking from 0 to 0.183422",
+        "frag": {
+          "sn": 1,
+          "level": 0,
+          "duration": 6.0894111111111116
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.449Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment2.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 70,
+        "contentType": "video/MP2T",
+        "contentLength": "3176448",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.741Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment2.ts?[redacted]",
+        "elapsedMs": 362
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.827Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment3.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 52,
+        "contentType": "video/MP2T",
+        "contentLength": "3997632",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:27.928Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment3.ts?[redacted]",
+        "elapsedMs": 153
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:28.024Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment4.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 57,
+        "contentType": "video/MP2T",
+        "contentLength": "3928448",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.014Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment4.ts?[redacted]",
+        "elapsedMs": 1047
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.104Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment5.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 54,
+        "contentType": "video/MP2T",
+        "contentLength": "4256320",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.317Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment5.ts?[redacted]",
+        "elapsedMs": 267
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.409Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment6.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 54,
+        "contentType": "video/MP2T",
+        "contentLength": "2917760",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.499Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment6.ts?[redacted]",
+        "elapsedMs": 144
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.576Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment7.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 55,
+        "contentType": "video/MP2T",
+        "contentLength": "2096576",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.634Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment7.ts?[redacted]",
+        "elapsedMs": 113
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.716Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment8.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 66,
+        "contentType": "video/MP2T",
+        "contentLength": "2656064",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.813Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment8.ts?[redacted]",
+        "elapsedMs": 163
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.888Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment9.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 58,
+        "contentType": "video/MP2T",
+        "contentLength": "2773376",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:29.976Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment9.ts?[redacted]",
+        "elapsedMs": 146
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.061Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment10.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 66,
+        "contentType": "video/MP2T",
+        "contentLength": "3365952",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.168Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment10.ts?[redacted]",
+        "elapsedMs": 173
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.248Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment11.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 59,
+        "contentType": "video/MP2T",
+        "contentLength": "3065152",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.333Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment11.ts?[redacted]",
+        "elapsedMs": 144
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.402Z",
+      "event": "client.vod_hls_error",
+      "details": {
+        "itemId": "199821",
+        "title": "Thor: Love and Thunder",
+        "type": "networkError",
+        "details": "aborted",
+        "fatal": false,
+        "reason": "",
+        "frag": {
+          "sn": 12,
+          "level": 0,
+          "duration": 6.006
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.410Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment12.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 59,
+        "contentType": "video/MP2T",
+        "contentLength": "3101248",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.515Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment29.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 109,
+        "contentType": "video/MP2T",
+        "contentLength": "3750976",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.850Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment29.ts?[redacted]",
+        "elapsedMs": 444
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:30.921Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment30.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 51,
+        "contentType": "video/MP2T",
+        "contentLength": "4151040",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:31.006Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment30.ts?[redacted]",
+        "elapsedMs": 136
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:31.081Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment31.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 54,
+        "contentType": "video/MP2T",
+        "contentLength": "4635328",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:31.278Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment31.ts?[redacted]",
+        "elapsedMs": 251
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:31.337Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment32.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 39,
+        "contentType": "video/MP2T",
+        "contentLength": "4057792",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.194Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment32.ts?[redacted]",
+        "elapsedMs": 896
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.279Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment33.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 60,
+        "contentType": "video/MP2T",
+        "contentLength": "3065152",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.376Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment33.ts?[redacted]",
+        "elapsedMs": 157
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.441Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment34.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 49,
+        "contentType": "video/MP2T",
+        "contentLength": "1997312",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.481Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment34.ts?[redacted]",
+        "elapsedMs": 89
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.534Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment35.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 41,
+        "contentType": "video/MP2T",
+        "contentLength": "3044096",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.604Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment35.ts?[redacted]",
+        "elapsedMs": 111
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.675Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment36.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 53,
+        "contentType": "video/MP2T",
+        "contentLength": "2896704",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.744Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment36.ts?[redacted]",
+        "elapsedMs": 122
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.796Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment37.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 36,
+        "contentType": "video/MP2T",
+        "contentLength": "2433472",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.858Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment37.ts?[redacted]",
+        "elapsedMs": 98
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.910Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment38.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 37,
+        "contentType": "video/MP2T",
+        "contentLength": "2511680",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:32.975Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment38.ts?[redacted]",
+        "elapsedMs": 102
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.028Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment39.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 39,
+        "contentType": "video/MP2T",
+        "contentLength": "2216896",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.082Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment39.ts?[redacted]",
+        "elapsedMs": 93
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.136Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment40.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 41,
+        "contentType": "video/MP2T",
+        "contentLength": "2216896",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.190Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment40.ts?[redacted]",
+        "elapsedMs": 95
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.249Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment41.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 46,
+        "contentType": "video/MP2T",
+        "contentLength": "1979264",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.289Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment41.ts?[redacted]",
+        "elapsedMs": 86
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.339Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment42.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 38,
+        "contentType": "video/MP2T",
+        "contentLength": "2153728",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.392Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment42.ts?[redacted]",
+        "elapsedMs": 91
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.451Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment43.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 46,
+        "contentType": "video/MP2T",
+        "contentLength": "2343232",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.500Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment43.ts?[redacted]",
+        "elapsedMs": 95
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.557Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment44.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 45,
+        "contentType": "video/MP2T",
+        "contentLength": "3158400",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.660Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment44.ts?[redacted]",
+        "elapsedMs": 148
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.732Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment45.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 55,
+        "contentType": "video/MP2T",
+        "contentLength": "3248640",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.814Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment45.ts?[redacted]",
+        "elapsedMs": 137
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.870Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment46.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 39,
+        "contentType": "video/MP2T",
+        "contentLength": "2397376",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:33.992Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment46.ts?[redacted]",
+        "elapsedMs": 161
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:34.057Z",
+      "event": "relay.response",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment47.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 51,
+        "contentType": "video/MP2T",
+        "contentLength": "2496640",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:34.115Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment47.ts?[redacted]",
+        "elapsedMs": 109
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:48.583Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "itv",
+          "action": "create_link",
+          "cmd": "ffrt http://localhost/ch/29407",
+          "series": "0",
+          "forced_storage": "undefined",
+          "disable_ad": "0",
+          "download": "0"
+        },
+        "status": 200,
+        "elapsedMs": 135,
+        "response": {
+          "js": {
+            "id": "29277",
+            "cmd": "http://194.147.150.130:29823/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/index.m3u8?[redacted]",
+            "streamer_id": 0,
+            "link_id": 29407,
+            "load": 0,
+            "error": ""
+          },
+          "text": "array(6) {\n  [\"id\"]=>\n  string(5) \"29277\"\n  [\"cmd\"]=>\n  string(135) \"http://194.147.150.130:29823/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/index.m3u8?[redacted]\n  [\"streamer_id\"]=>\n  int(0)\n  [\"link_id\"]=>\n  int(29407)\n  [\"load\"]=>\n  int(0)\n  [\"error\"]=>\n  string(0) \"\"\n}\ngenerated in: 0.03s; query counter: 18; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:48.587Z",
+      "event": "live.playback_link",
+      "details": {
+        "channelId": "29277",
+        "command": "ffrt http://localhost/ch/29407",
+        "returnedLink": "http://194.147.150.130:29823/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/index.m3u8?[redacted]",
+        "streamUrl": "http://194.147.150.130:29823/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/index.m3u8?[redacted]"
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:49.025Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/index.m3u8?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 1,
+          "sample": [
+            {
+              "from": "http://194.147.150.130:29823/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/index.m3u8?[redacted]",
+              "to": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/index.m3u8?[redacted]",
+              "status": 301
+            }
+          ]
+        },
+        "status": 200,
+        "elapsedMs": 431,
+        "contentType": "application/vnd.apple.mpegurl",
+        "contentLength": "209",
+        "isManifest": true,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:49.034Z",
+      "event": "client.live_manifest_parsed",
+      "details": {
+        "channelId": "29277",
+        "title": "BEAUTIFUL EARTH"
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:49.148Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/mono.m3u8?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 110,
+        "contentType": "application/vnd.apple.mpegurl",
+        "contentLength": "196",
+        "isManifest": true,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:49.276Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/35-05906.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 119,
+        "contentType": "video/MP2T",
+        "contentLength": "1088896",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:49.906Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/35-05906.ts?[redacted]",
+        "elapsedMs": 749
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:49.931Z",
+      "event": "client.live_fragment_loaded",
+      "details": {
+        "channelId": "29277"
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:50.052Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/41-05906.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 108,
+        "contentType": "video/MP2T",
+        "contentLength": "1191168",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:50.278Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/41-05906.ts?[redacted]",
+        "elapsedMs": 334
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:50.291Z",
+      "event": "client.live_fragment_loaded",
+      "details": {
+        "channelId": "29277"
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:55.188Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/mono.m3u8?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 243,
+        "contentType": "application/vnd.apple.mpegurl",
+        "contentLength": "204",
+        "isManifest": true,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:55.317Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/47-05739.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 120,
+        "contentType": "video/MP2T",
+        "contentLength": "1528064",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:55.969Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/47-05739.ts?[redacted]",
+        "elapsedMs": 772
+      }
+    },
+    {
+      "at": "2026-08-28T03:02:55.985Z",
+      "event": "client.live_fragment_loaded",
+      "details": {
+        "channelId": "29277"
+      }
+    },
+    {
+      "at": "2026-08-28T03:03:00.933Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/mono.m3u8?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 246,
+        "contentType": "application/vnd.apple.mpegurl",
+        "contentLength": "217",
+        "isManifest": true,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:03:01.068Z",
+      "event": "relay.response",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/53-06073.ts?[redacted]",
+        "redirects": {
+          "_type": "array",
+          "count": 0,
+          "sample": []
+        },
+        "status": 200,
+        "elapsedMs": 125,
+        "contentType": "video/MP2T",
+        "contentLength": "1726592",
+        "isManifest": false,
+        "ranged": false
+      }
+    },
+    {
+      "at": "2026-08-28T03:03:01.748Z",
+      "event": "relay.complete",
+      "details": {
+        "context": "live:segment:segment",
+        "url": "http://45.142.0.193:49893/ghLs2zdZSnFvSS00155adb313741916c293e93b5ea7c7058987bde13/tracks-v1a1/2026/08/28/03/02/53-06073.ts?[redacted]",
+        "elapsedMs": 805
+      }
+    },
+    {
+      "at": "2026-08-28T03:03:01.762Z",
+      "event": "client.live_fragment_loaded",
+      "details": {
+        "channelId": "29277"
+      }
+    },
+    {
+      "at": "2026-08-28T03:03:15.369Z",
+      "event": "relay.body_error",
+      "details": {
+        "context": "vod:segment:segment",
+        "url": "http://uu155adb.vz.vacdn.cc:55899/ghLs2zdZSnFvSS00155adb243057ea09303d86d787007a78b844e853429ff0cf82bc0951aa2a3d29c9fd82257e1472d91c23b052254bdaebbdddf6986ed7476a7845ff427d7e25e05ad3/tracks-v1a1/segment12.ts?[redacted]",
+        "elapsedMs": 45018
+      }
+    },
+    {
+      "at": "2026-08-28T03:03:51.424Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_ordered_list",
+          "category": "*",
+          "p": 3,
+          "sortby": "added"
+        },
+        "status": 200,
+        "elapsedMs": 969,
+        "response": {
+          "js": {
+            "total_items": "127688",
+            "max_page_items": 14,
+            "selected_item": 0,
+            "cur_page": 0,
+            "data": {
+              "_type": "array",
+              "count": 14,
+              "sample": [
+                {
+                  "id": "325825",
+                  "owner": "",
+                  "name": "Hum Tv: Zanjeerain",
+                  "old_name": "",
+                  "o_name": "Hum Tv: Zanjeerain",
+                  "fname": "",
+                  "description": "",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Hum_Tv_Zanjeerain_2026",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "29",
+                  "genre_id": "0",
+                  "genre_id_1": "0",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "68",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "333333",
+                  "owner": "",
+                  "name": "Hum Tv: Naraz hai Zindagi",
+                  "old_name": "",
+                  "o_name": "Hum Tv: Naraz hai Zindagi",
+                  "fname": "",
+                  "description": "",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Hum_Tv_Naraz_hai_Zindagi_2026",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "29",
+                  "genre_id": "0",
+                  "genre_id_1": "0",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "68",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                },
+                {
+                  "id": "329959",
+                  "owner": "",
+                  "name": "Hum Tv: Deewar",
+                  "old_name": "",
+                  "o_name": "Hum Tv: Deewar",
+                  "fname": "",
+                  "description": "",
+                  "pic": "",
+                  "cost": "0",
+                  "time": "",
+                  "file": "",
+                  "path": "Hum_Tv_Deewar_2026",
+                  "protocol": "nfs",
+                  "rtsp_url": "",
+                  "censored": "0",
+                  "hd": 1,
+                  "series": {
+                    "_type": "array",
+                    "count": 0,
+                    "sample": []
+                  },
+                  "volume_correction": "0",
+                  "category_id": "29",
+                  "genre_id": "0",
+                  "genre_id_1": "0",
+                  "genre_id_2": "0",
+                  "genre_id_3": "0",
+                  "genre_id_4": "0",
+                  "cat_genre_id_1": "68",
+                  "cat_genre_id_2": "0",
+                  "cat_genre_id_3": "0",
+                  "cat_genre_id_4": "0",
+                  "director": "",
+                  "actors": "",
+                  "_moreKeys": 42
+                }
+              ]
+            }
+          },
+          "text": "generated in: 0.904s; query counter: 70; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    },
+    {
+      "at": "2026-08-28T03:03:52.316Z",
+      "event": "portal.response",
+      "details": {
+        "request": {
+          "type": "vod",
+          "action": "get_categories"
+        },
+        "status": 200,
+        "elapsedMs": 888,
+        "response": {
+          "js": {
+            "_type": "array",
+            "count": 80,
+            "sample": [
+              {
+                "id": "*",
+                "title": "All",
+                "alias": "*",
+                "censored": 0
+              },
+              {
+                "id": "10",
+                "title": "ENGLISH TV SHOWS",
+                "alias": "ENGLISH_TV_SERIES",
+                "censored": 0
+              },
+              {
+                "id": "160",
+                "title": "NETFLIX ENGLISH SHOWS",
+                "alias": "NETFLIX__ENGLISH_SERIES",
+                "censored": 0
+              }
+            ]
+          },
+          "text": "generated in: 0.826s; query counter: 16; cache hits: 0; cache miss: 0; php errors: 0; sql errors: 0;"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "portals": [
+    {
+      "id": "portal-1787886099590",
+      "nickname": "Sony",
+      "portalUrl": "http://sony4k.me",
+      "mac": "00:1E:B8:D9:54:55"
+    }
+  ],
+  "activePortalId": "portal-1787886099590",
+  "parentalPinHash": "a12abeef536ec42b496a0d60775038e1d64db82083c7c0383abad198dcbc4e27"
+}
