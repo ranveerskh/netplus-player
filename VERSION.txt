@@ -1,3 +1,0 @@
-STB PLAY IPTV Player
-Version: 1.7.5
-Build: Premium UI + Fresh VOD create_link Playback + Provider-wide Search
