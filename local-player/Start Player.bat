@@ -1,5 +1,5 @@
 @echo off
-title STB PLAY — v1.8.6
+title STB PLAY — v1.8.8
 cd /d "%~dp0"
 
 where node >nul 2>nul

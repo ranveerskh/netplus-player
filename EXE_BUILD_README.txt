@@ -1,9 +1,9 @@
-STB PLAY — v1.8.6 PUBLIC RELEASE
+STB PLAY — v1.8.8 PUBLIC RELEASE
 
 This is a complete replacement source package. After installation,
-Settings must show “STB PLAY v1.8.6”.
+Settings must show “STB PLAY v1.8.8”.
 
-WHAT CHANGED IN v1.8.6
+WHAT CHANGED IN v1.8.8
 
 1. Movies and episodes whose selected quality is already a final http/https
    stream URL now play that URL directly. The app no longer sends a final
@@ -53,22 +53,22 @@ BUILD THE WINDOWS EXE
 1. Extract this ZIP on your computer.
 2. Open your netplus-player GitHub repository.
 3. Upload and replace ALL extracted files and folders, then commit the changes.
-4. Open Actions. “Build Windows installer” starts automatically on main, or
-   select Run workflow manually.
-5. When the workflow is green, download the artifact named
-   Netplus-IPTV-Player-Setup.
-6. Close the old app and run the STB-PLAY installer for v1.8.6. It upgrades
+4. The “Build Windows installer” workflow builds the installer and publishes
+   a GitHub Release automatically after the commit reaches main.
+5. The release asset is named Netplus-IPTV-Player-Setup-1.8.8.exe. The
+   installer bootstrapper can download it from Releases/latest.
+6. Close the old app and run the STB-PLAY installer for v1.8.8. It upgrades
    the previous version; normally you do not need to uninstall first.
 
 TEST AFTER INSTALLATION
 
-1. Open Settings and confirm v1.8.6 Premium Home + Personalised Recommendations UI is shown.
+1. Open Settings and confirm v1.8.8 Premium Home + Personalised Recommendations UI is shown.
 2. Play a Live TV channel continuously for at least 90 seconds.
 3. Open multiple movies and confirm Quality -> Play.
 4. Open a title from a SHOWS category and confirm Seasons -> Episodes ->
    Quality -> Play.
 5. If any problem remains, choose Settings -> Start fresh test, reproduce one
-   Live TV and one VOD attempt, then send netplus-diagnostics-v1.8.6.json.
+   Live TV and one VOD attempt, then send netplus-diagnostics-v1.8.8.json.
 
 The diagnostic report excludes the MAC address, parental PIN, portal token,
 cookies, and full stream links.

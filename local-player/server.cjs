@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.7 Latest-release installer bootstrapper
+ VERSION: 1.8.8 GitHub release publishing workflow
  File: server.cjs
 =========================================================
 */
@@ -21,10 +21,10 @@ const HOST = "127.0.0.1";
 const PORT = 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.7";
+const APP_VERSION = "1.8.8";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.8.7.json"
+  "netplus-diagnostics-v1.8.8.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 
@@ -3197,7 +3197,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.7.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.8.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 

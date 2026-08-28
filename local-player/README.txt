@@ -1,4 +1,4 @@
-STB PLAY — v1.8.6 PUBLIC RELEASE
+STB PLAY — v1.8.8 PUBLIC RELEASE
 
 1. Install the official Node.js 24 LTS Windows x64 version from:
    https://nodejs.org/dist/v24.19.0/node-v24.19.0-x64.msi
@@ -15,7 +15,7 @@ STB PLAY — v1.8.6 PUBLIC RELEASE
 
 Important:
 - No npm install is required.
-- Settings shows the active version as STB PLAY v1.8.6.
+- Settings shows the active version as STB PLAY v1.8.8.
 - Movies and series are browsed together in Movies & Series; series open as
   seasons, episodes, and provider quality choices.
 - Home content refreshes once a day; Settings also has Refresh content,
