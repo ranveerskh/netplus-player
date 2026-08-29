@@ -1,5 +1,4 @@
 name: Build Windows installer
-
 on:
   workflow_dispatch:
   push:
@@ -24,7 +23,7 @@ jobs:
       - name: Build STB PLAY installer
         run: npm run desktop:make
 
-      - name: Upload installer
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: STB-PLAY-Windows-Installer
@@ -32,9 +31,22 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: $env:GITHUB_TOKEN
         run: |
-          $installer = (Get-ChildItem release\Netplus-IPTV-Player-Setup-*.exe | Select-Object -First 1).FullName
-          gh release create "$env:GITHUB_REF_NAME" "$installer" --repo "$env:GITHUB_REPOSITORY" --title "STB PLAY $env:GITHUB_REF_NAME" --generate-notes
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          $version = [string]$package.version
+          if ([string]::IsNullOrWhiteSpace($version)) { throw 'package.json has no version.' }
+          $tag = "v$version"
+          $installer = Get-ChildItem 'release\Netplus-IPTV-Player-Setup-*.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'The Windows installer was not created.' }
+
+          gh release view $tag --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag exists; uploading installer."
+            gh release upload $tag $installer.FullName --repo "$env:GITHUB_REPOSITORY" --clobber
+          } else {
+            gh release create $tag $installer.FullName --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "STB PLAY $tag" --generate-notes
+          }
