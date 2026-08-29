@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.14 strict search, restored live parental locking, recovery and analytics
+ VERSION: 1.8.15 strict search, restored live parental locking, subtitles, recovery and analytics
  File: styles.css
 =========================================================
 */
@@ -268,6 +268,8 @@ body.theme-light {
 .progress-container:hover .progress-bar::after { display:block; }
 .controls-buttons { display:flex; justify-content:space-between; align-items:center; }
 .controls-left,.controls-right { display:flex; align-items:center; gap:17px; }
+.vod-subtitle-select { max-width:150px; min-height:32px; padding:0 8px; border:1px solid rgba(255,255,255,.22); border-radius:8px; background:rgba(5,12,20,.78); color:#fff; font-size:10px; }
+.vod-subtitle-select:focus { border-color:var(--accent); }
 .control-btn { padding:2px; border:0; background:transparent; color:white; cursor:pointer; font-size:20px; transition:transform .18s ease,color .18s ease; }
 .control-btn:hover { transform:scale(1.12); color:var(--accent); }
 .volume-container { display:flex; align-items:center; gap:8px; }
@@ -1158,7 +1160,7 @@ body.theme-light .dashboard-hero .dashboard-hero-meta span { color:#f5fbff !impo
 .theme-light .recovery-code-panel small,.theme-light .forgot-pin-box label { color:#476276; }
 .theme-light .recovery-code-panel strong { color:#7a4e0c; }
 
-/* v1.8.14: keep Settings readable at desktop widths. The previous 12-column
+/* v1.8.15: keep Settings readable at desktop widths. The previous 12-column
    layout squeezed several cards into tiny two-column slices. */
 .settings-page-grid {
   grid-template-columns:repeat(2,minmax(0,1fr));
