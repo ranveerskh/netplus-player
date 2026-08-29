@@ -26,14 +26,32 @@ function downloadInstaller(url, targetPath, redirectCount = 0) {
         return reject(new Error(`Update download failed (${status}).`));
       }
 
-      const file = fs.createWriteStream(targetPath);
+      const partialPath = `${targetPath}.part`;
+      const file = fs.createWriteStream(partialPath);
       response.pipe(file);
-      file.on("finish", () => file.close(resolve));
+      file.on("finish", () => file.close(() => {
+        try {
+          const stat = fs.statSync(partialPath);
+          const signature = fs.readFileSync(partialPath, { encoding: null, flag: "r" }).subarray(0, 2).toString("ascii");
+          if (stat.size < 1_000_000 || signature !== "MZ") {
+            throw new Error("The downloaded installer is incomplete or invalid.");
+          }
+          fs.renameSync(partialPath, targetPath);
+          resolve();
+        } catch (error) {
+          try { fs.unlinkSync(partialPath); } catch {}
+          reject(error);
+        }
+      }));
       file.on("error", (error) => {
         file.destroy();
+        try { fs.unlinkSync(partialPath); } catch {}
         reject(error);
       });
-      response.on("error", reject);
+      response.on("error", (error) => {
+        try { fs.unlinkSync(partialPath); } catch {}
+        reject(error);
+      });
     });
     request.setTimeout(120_000, () => request.destroy(new Error("Update download timed out.")));
     request.on("error", reject);
@@ -53,6 +71,7 @@ ipcMain.handle("download-and-install-update", async (_event, rawUrl) => {
     return { started: true };
   } catch (error) {
     try { fs.unlinkSync(installerPath); } catch {}
+    try { fs.unlinkSync(`${installerPath}.part`); } catch {}
     throw error;
   }
 });
