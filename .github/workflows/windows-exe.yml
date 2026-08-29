@@ -1,0 +1,40 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install build tools
+        run: npm install --no-audit --no-fund
+
+      - name: Build STB PLAY installer
+        run: npm run desktop:make
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: STB-PLAY-Windows-Installer
+          path: release/Netplus-IPTV-Player-Setup-*.exe
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $installer = (Get-ChildItem release\Netplus-IPTV-Player-Setup-*.exe | Select-Object -First 1).FullName
+          gh release create "$env:GITHUB_REF_NAME" "$installer" --repo "$env:GITHUB_REPOSITORY" --title "STB PLAY $env:GITHUB_REF_NAME" --generate-notes
