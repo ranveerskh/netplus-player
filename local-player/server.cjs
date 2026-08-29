@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.12 MAC reuse, VLC fallback and installer update release
+ VERSION: 1.8.13 strict search, Live 18+ PIN category and playback recovery
  File: server.cjs
 =========================================================
 */
@@ -21,10 +21,10 @@ const HOST = "127.0.0.1";
 const PORT = 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.12";
+const APP_VERSION = "1.8.13";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.8.12.json"
+  "netplus-diagnostics-v1.8.13.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 
@@ -188,6 +188,30 @@ function invalidateContentCaches() {
 
 const ADULT_TERMS = /(adult|xxx|18\s*(?:\+|plus)|porn|erotic|sex)/i;
 const ADULT_RATING = /(18\s*(?:\+|plus)|\bA\b|NC[- ]?17|XXX|\bX{1,3}\b)/i;
+
+function providerFlagIsTrue(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return ["1", "true", "yes", "on", "adult", "locked"].includes(
+    String(value ?? "").trim().toLowerCase()
+  );
+}
+
+function hasAdultProviderFlag(record) {
+  if (!record || typeof record !== "object") return false;
+  return [
+    "adult",
+    "is_adult",
+    "isAdult",
+    "adult_locked",
+    "adultLock",
+    "parental",
+    "parental_lock",
+    "parental_locked",
+    "locked",
+    "censored",
+  ].some((key) => providerFlagIsTrue(record[key]));
+}
 /* Recovery codes are generated per installation and only their hashes are
    written to the local config file. No shared support/master PIN is bundled. */
 
@@ -418,6 +442,11 @@ function isAdult(title) {
 
 function isAdultRating(rating) {
   return ADULT_RATING.test(String(rating || "").trim());
+}
+
+function isAdultRecord(record, ...values) {
+  return hasAdultProviderFlag(record) || values.some((value) => isAdult(value)) ||
+    values.some((value) => isAdultRating(value));
 }
 
 function saveConfig(serviceId, macInput, parentalPin) {
@@ -773,48 +802,56 @@ function extractSubscription(profile) {
   };
 }
 
-async function createSession() {
-  const config = readConfig();
+async function createSession(retry = true) {
+  try {
+    const config = readConfig();
 
-  if (!config) {
-    throw new PlayerError("Complete local player setup first.", 400);
-  }
+    if (!config) {
+      throw new PlayerError("Complete local player setup first.", 400);
+    }
 
-  const handshake = await portalRequest({
-    type: "stb",
-    action: "handshake",
-    token: "",
-  });
-
-  const token = handshake.data?.js?.token;
-
-  if (!token || handshake.data?.js?.not_valid === 1) {
-    throw new PlayerError("Portal did not authorize this MAC address.", 401);
-  }
-
-  const session = {
-    token,
-    cookie: mergeCookieHeader(config.baseCookie, handshake.headers),
-  };
-
-  const profile = await portalRequest(
-    {
+    const handshake = await portalRequest({
       type: "stb",
-      action: "get_profile",
-      hd: "1",
-      stb_type: "MAG250",
-      image_version: "218",
-      auth_second_step: "1",
-      not_valid_token: "0",
-    },
-    session
-  );
+      action: "handshake",
+      token: "",
+    });
 
-  if (!profile.data?.js) {
-    throw new PlayerError("MAC profile is unavailable.", 401);
+    const token = handshake.data?.js?.token;
+
+    if (!token || handshake.data?.js?.not_valid === 1) {
+      throw new PlayerError("Portal did not authorize this MAC address.", 401);
+    }
+
+    const session = {
+      token,
+      cookie: mergeCookieHeader(config.baseCookie, handshake.headers),
+    };
+
+    const profile = await portalRequest(
+      {
+        type: "stb",
+        action: "get_profile",
+        hd: "1",
+        stb_type: "MAG250",
+        image_version: "218",
+        auth_second_step: "1",
+        not_valid_token: "0",
+      },
+      session
+    );
+
+    if (!profile.data?.js) {
+      throw new PlayerError("MAC profile is unavailable.", 401);
+    }
+
+    return { ...session, subscription: extractSubscription(profile.data.js) };
+  } catch (error) {
+    if (retry && error instanceof PlayerError && error.status === 401) {
+      await waitMs(750);
+      return createSession(false);
+    }
+    throw error;
   }
-
-  return { ...session, subscription: extractSubscription(profile.data.js) };
 }
 
 async function rebuildCatalog() {
@@ -849,7 +886,15 @@ async function rebuildCatalog() {
         number: Number.isFinite(number) ? number : null,
         genreId: String(channel.tv_genre_id ?? "0"),
         hd: String(channel.hd) === "1",
-        adultLocked: isAdult(channel.name),
+        adultLocked: isAdultRecord(
+          channel,
+          channel.name,
+          channel.title,
+          channel.genre_name,
+          channel.tv_genre_name,
+          channel.rating,
+          channel.rating_imdb
+        ),
       };
     })
     .sort(
@@ -870,7 +915,7 @@ async function rebuildCatalog() {
         .map((genre) => ({
           id: String(genre.id),
           title: String(genre.title).trim(),
-          locked: Boolean(genre.locked || genre.adult || isAdult(genre.title)),
+          locked: isAdultRecord(genre, genre.title, genre.name),
         })),
       channels,
     },
@@ -933,6 +978,10 @@ async function getStreamUrl(channelId, retry = true) {
   const command = catalog.commands.get(channelId);
 
   if (!command) {
+    if (retry) {
+      await activeCatalog(true);
+      return getStreamUrl(channelId, false);
+    }
     throw new PlayerError("Channel is no longer available.", 404);
   }
 
@@ -1050,7 +1099,15 @@ function normalizeMediaItem(row, kind = "vod") {
     kind: hasSeriesShape ? "series" : "vod",
     isSeries: hasSeriesShape,
     categoryId: row?.category_id == null ? undefined : String(row.category_id),
-    adultLocked: isAdult(row.name || row.title) || isAdultRating(row.rating || row.rating_imdb || row.kinopoisk_rating),
+    adultLocked: isAdultRecord(
+      row,
+      row.name || row.title,
+      row.old_name || row.o_name,
+      row.genre,
+      row.genre_name,
+      row.category_name,
+      row.rating || row.rating_imdb || row.kinopoisk_rating
+    ),
   };
 }
 
@@ -1308,7 +1365,7 @@ async function getVodCategories() {
     .map((row) => ({
       id: String(row.id),
       title: String(row.title || row.name).trim(),
-      locked: isAdult(row.title || row.name),
+      locked: isAdultRecord(row, row.title || row.name, row.category_name),
     }));
 
   vodCategoriesCache = {
@@ -1478,13 +1535,30 @@ async function getVodItems(categoryId, page = 0, searchTerm = "", queueOptions =
   return value;
 }
 
-function vodSearchText(item) {
-  return [
-    item?.title,
-    item?.name,
-    item?.oldTitle,
-    item?.path,
-  ].filter(Boolean).join(" ").toLowerCase();
+function searchWords(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function strictTitleMatches(item, query) {
+  const queryWords = searchWords(query);
+  if (!queryWords.length) return true;
+
+  return [item?.title, item?.oldTitle, item?.name]
+    .filter(Boolean)
+    .some((candidate) => {
+      const titleWords = searchWords(candidate);
+      if (queryWords.length > titleWords.length) return false;
+      for (let start = 0; start <= titleWords.length - queryWords.length; start += 1) {
+        if (queryWords.every((word, offset) => titleWords[start + offset] === word)) return true;
+      }
+      return false;
+    });
 }
 
 function addVodSearchItems(items, categoryMap) {
@@ -1577,17 +1651,25 @@ async function searchVodCatalog(query) {
       priority: 120,
       background: false,
     });
-    const providerMatches = (providerPage.items || []).filter((item) => vodSearchText(item).includes(needle));
-    if (providerMatches.length || Number(providerPage.total) === 0) {
+    const providerMatches = (providerPage.items || [])
+      .filter((item) => strictTitleMatches(item, needle));
+    const indexedMatches = [...vodSearchState.items.values()]
+      .filter((item) => strictTitleMatches(item, needle));
+    const mergedMatches = [...providerMatches, ...indexedMatches]
+      .filter((item, index, items) =>
+        items.findIndex((entry) => String(entry.id) === String(item.id)) === index
+      )
+      .slice(0, 100);
+    if (mergedMatches.length) {
       return {
         query: needle,
-        items: providerMatches.slice(0, 100),
-        total: providerMatches.length,
+        items: mergedMatches,
+        total: mergedMatches.length,
         indexedItems: vodSearchState.items.size,
-        totalItems: Number(providerPage.total) || 0,
-        complete: true,
-        building: false,
-        provider: true,
+        totalItems: Number(providerPage.total) || vodSearchState.total,
+        complete: vodSearchState.complete,
+        building: vodSearchState.building,
+        provider: providerMatches.length > 0,
         error: "",
       };
     }
@@ -1598,7 +1680,7 @@ async function searchVodCatalog(query) {
   /* If the provider ignored `search=`, return the local shelf/index. A full
      index is never started implicitly by typing in the search box. */
   const items = [...vodSearchState.items.values()]
-    .filter((item) => vodSearchText(item).includes(needle))
+    .filter((item) => strictTitleMatches(item, needle))
     .slice(0, 100);
 
   recordDiagnostic("vod.search_index_status", {
@@ -2353,7 +2435,7 @@ async function getSeriesCategories() {
     .map((row) => ({
       id: String(row.id),
       title: String(row.title || row.name).trim(),
-      locked: isAdult(row.title || row.name),
+      locked: isAdultRecord(row, row.title || row.name, row.category_name),
     }));
 }
 
@@ -3249,7 +3331,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.12.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.13.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 

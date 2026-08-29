@@ -2,7 +2,7 @@
 <!--
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.12 MAC reuse, VLC fallback and installer update release
+ VERSION: 1.8.13 strict search, Live 18+ PIN category and playback recovery
  File: index.html
 =========================================================
 -->
@@ -10,12 +10,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="app-version" content="1.8.12-mac-vlc-installer-update">
+  <meta name="app-version" content="1.8.13-strict-search-live-adult-recovery">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>STB PLAY · 1.8.12</title>
-  <link rel="stylesheet" href="styles.css?v=1.8.12-mac-vlc-installer-update">
+  <title>STB PLAY · 1.8.13</title>
+  <link rel="stylesheet" href="styles.css?v=1.8.13-strict-search-live-adult-recovery">
   <script src="hls.min.js"></script>
 </head>
 
@@ -64,7 +64,7 @@
     <small class="field-help">The same MAC is reused for additional portals. Change it only if your provider assigned a different one.</small>
 
     <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
-    <p class="setup-version">STB PLAY v1.8.12 · Premium IPTV player</p>
+    <p class="setup-version">STB PLAY v1.8.13 · Premium IPTV player</p>
   </form>
 </main>
 
@@ -426,7 +426,7 @@
     </section>
     <section class="settings-section settings-diagnostic">
       <h3>Playback diagnostic</h3>
-      <p>Diagnostics are off by default. Press Start fresh test only when you want to create a report; it records playback timing and error types, not your MAC, PIN, tokens, cookies, provider hostname, or full stream links.</p>
+      <p>Diagnostics are off by default. When support asks, press Start fresh test, reproduce the issue, then download and attach the report to support. It records playback timing and error types, not your MAC, PIN, tokens, cookies, provider hostname, or full stream links.</p>
       <div class="input-row">
         <button id="resetDiagnosticButton" type="button">Start fresh test</button>
         <button id="downloadDiagnosticButton" type="button">Download report</button>
@@ -439,7 +439,7 @@
       <button id="resetPortalButton" class="danger-btn" type="button">Manage portals</button>
     </section>
     </div>
-    <p class="settings-version">STB PLAY v1.8.12 · Premium Home + personalised recommendations</p>
+    <p class="settings-version">STB PLAY v1.8.13 · Premium Home + personalised recommendations</p>
   </div>
 </div>
 
@@ -494,6 +494,6 @@
   <button id="updateToastDownload" class="primary-button" type="button">Download &amp; install</button>
 </aside>
 
-<script src="app.js?v=1.8.12-mac-vlc-installer-update"></script>
+<script src="app.js?v=1.8.13-strict-search-live-adult-recovery"></script>
 </body>
 </html>

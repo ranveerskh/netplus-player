@@ -1,4 +1,4 @@
-STB PLAY — v1.8.12 PUBLIC RELEASE
+STB PLAY — v1.8.13 PUBLIC RELEASE
 
 1. Install the official Node.js 24 LTS Windows x64 version from:
    https://nodejs.org/dist/v24.19.0/node-v24.19.0-x64.msi
@@ -15,7 +15,7 @@ STB PLAY — v1.8.12 PUBLIC RELEASE
 
 Important:
 - No npm install is required.
-- Settings shows the active version as STB PLAY v1.8.12.
+- Settings shows the active version as STB PLAY v1.8.13.
 - Movies and series are browsed together in Movies & Series; series open as
   seasons, episodes, and provider quality choices.
 - Home content refreshes once a day; Settings also has Refresh content,
@@ -28,6 +28,14 @@ Important:
   loading stops when the provider returns HTTP 429.
 - Search paints local shelf/cache matches immediately and tries the provider's
   native search parameter once; a full local index is optional from Settings.
+- Search matches complete title words in the display title or alternate title;
+  provider paths and unrelated metadata are not treated as title matches.
+- Live TV adds a local PIN-protected 18+ channels category when the provider
+  returns adult-marked or clearly 18+ channels. Leaving the category relocks it.
+- A transient MAC authorization failure is retried once, and a missing channel
+  refreshes the live catalogue once before showing an unavailable message.
+- Playback diagnostic reports are created only after the user presses Start
+  fresh test and can be downloaded and attached to support.
 - Opening a title uses the already cached metadata first and refreshes that
   title's details on demand.
 - The Home hero rotates every 8 seconds, supports dots/arrows, and pauses while

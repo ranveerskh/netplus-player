@@ -1,14 +1,15 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.12 MAC reuse, VLC fallback and installer update release
+ VERSION: 1.8.13 strict search, Live 18+ PIN category and playback recovery
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.12";
+const APP_VERSION = "1.8.13";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const UPDATE_MANIFEST_URL = "https://raw.githubusercontent.com/ranveerskh/netplus-player/main/update.json";
+const LIVE_ADULT_CATEGORY_ID = "__adult__";
 
 const state = {
   catalog: null,
@@ -398,14 +399,39 @@ function localCategoryMatches(item) {
   return Boolean(needle) && String(item.categoryTitle || "").trim().toLowerCase() === needle;
 }
 
+function searchWords(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function strictTitleMatches(item, query) {
+  const queryWords = searchWords(query);
+  if (!queryWords.length) return true;
+
+  return [item?.title, item?.oldTitle, item?.name]
+    .filter(Boolean)
+    .some((candidate) => {
+      const titleWords = searchWords(candidate);
+      if (queryWords.length > titleWords.length) return false;
+      for (let start = 0; start <= titleWords.length - queryWords.length; start += 1) {
+        if (queryWords.every((word, offset) => titleWords[start + offset] === word)) return true;
+      }
+      return false;
+    });
+}
+
 function searchLocalVodIndex(query) {
-  const needle = String(query || "").trim().toLowerCase();
+  const needle = String(query || "").trim();
   return state.vod.localIndex.filter((item) => {
     if (!localCategoryMatches(item)) return false;
     if (state.vod.filter === "series" && item.kind !== "series" && item.isSeries !== true) return false;
     if (state.vod.filter === "movie" && (item.kind === "series" || item.isSeries === true)) return false;
-    return [item.title, item.name, item.oldTitle, item.path]
-      .filter(Boolean).join(" ").toLowerCase().includes(needle);
+    return strictTitleMatches(item, needle);
   }).slice(0, 100);
 }
 
@@ -747,6 +773,15 @@ function saveWatchHistory() {
 }
 
 function categoryById(id) {
+  if (String(id) === LIVE_ADULT_CATEGORY_ID &&
+      state.catalog?.channels?.some((channel) => channel.adultLocked)) {
+    return {
+      id: LIVE_ADULT_CATEGORY_ID,
+      title: "18+ channels",
+      locked: true,
+      adultLocked: true,
+    };
+  }
   return state.catalog?.categories?.find((category) => category.id === id);
 }
 
@@ -1241,13 +1276,25 @@ function renderCategories() {
     (category) => state.editingGroups || !state.hiddenGroups.has(category.id)
   );
 
+  const hasAdultChannels = state.catalog.channels.some((channel) => channel.adultLocked);
+  const adultCategory = hasAdultChannels &&
+    (state.editingGroups || !state.hiddenGroups.has(LIVE_ADULT_CATEGORY_ID))
+    ? [{
+        id: LIVE_ADULT_CATEGORY_ID,
+        title: "18+ channels",
+        locked: true,
+        adultLocked: true,
+      }]
+    : [];
+
   const categories = [
     { id: "favorites", title: "Favorites", locked: false },
     { id: "all", title: "All channels", locked: false },
+    ...adultCategory,
     ...visiblePortalCategories,
   ];
 
-  elements.groupCount.textContent = `${visiblePortalCategories.length.toLocaleString()} groups`;
+  elements.groupCount.textContent = `${(visiblePortalCategories.length + adultCategory.length).toLocaleString()} groups`;
 
   const nodes = categories.map((category) => {
     const button = document.createElement("button");
@@ -1319,6 +1366,8 @@ function filteredChannels() {
     const inCategory =
       state.category === "favorites"
         ? state.favoriteChannels.has(channel.id)
+        : state.category === LIVE_ADULT_CATEGORY_ID
+          ? channel.adultLocked
         : state.category === "all" || channel.genreId === state.category;
 
     return (
@@ -2022,7 +2071,7 @@ function setPoster(element, item) {
 }
 
 function filterVodCollection(collection) {
-  const query = state.vod.query.trim().toLowerCase();
+  const query = state.vod.query.trim();
   const typeFiltered = collection.filter((item) => {
     if (state.vod.filter === "series") return item.kind === "series" || item.isSeries === true;
     if (state.vod.filter === "movie") return item.kind !== "series" && item.isSeries !== true;
@@ -2030,10 +2079,7 @@ function filterVodCollection(collection) {
   });
   if (!query) return typeFiltered;
 
-  return typeFiltered.filter((item) =>
-    [item.title, item.name, item.oldTitle, item.path]
-      .filter(Boolean).join(" ").toLowerCase().includes(query)
-  );
+  return typeFiltered.filter((item) => strictTitleMatches(item, query));
 }
 
 function filteredVodItems() {
@@ -4458,12 +4504,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.12.json";
+  link.download = "netplus-diagnostics-v1.8.13.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.8.12.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Attach the netplus-diagnostics-v1.8.13.json file when support asks for it.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
