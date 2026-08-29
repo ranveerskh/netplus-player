@@ -1,0 +1,5 @@
+{
+  "version": "1.8.9",
+  "notes": "Default player selection, VLC codec fallback, and exact matching desktop icon",
+  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/latest"
+}
