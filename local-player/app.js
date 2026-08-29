@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.14 strict search, restored live parental locking, recovery and analytics
+ VERSION: 1.8.15 strict search, restored live parental locking, subtitles, recovery and analytics
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.14";
+const APP_VERSION = "1.8.15";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const UPDATE_MANIFEST_URL = "https://raw.githubusercontent.com/ranveerskh/netplus-player/main/update.json";
 
@@ -90,6 +90,8 @@ const state = {
     shelvesLoaded: false,
     shelvesLoading: false,
     shelvesLoadedItems: 0,
+    subtitleTracks: [],
+    subtitleRequestToken: 0,
   },
 
   contentType: "vod",
@@ -206,6 +208,7 @@ const elements = {
   vodMuteBtn: $("#vodMuteBtn"),
   vodVolumeSlider: $("#vodVolumeSlider"),
   vodTimeDisplay: $("#vodTimeDisplay"),
+  vodSubtitleSelect: $("#vodSubtitleSelect"),
   closeVodPlayerButton: $("#closeVodPlayerButton"),
   vodFullscreenBtn: $("#vodFullscreenBtn"),
 
@@ -2781,6 +2784,99 @@ elements.vodFavoriteButton.addEventListener("click", () => {
   elements.vodFavoriteButton.textContent = favourite ? "Remove favourite" : "Add to favourites";
 });
 
+function subtitlePreference() {
+  const value = String(localStorage.getItem("subtitlePreference") || "off").toLowerCase();
+  return ["off", "auto", "en", "pa", "hi"].includes(value) ? value : "off";
+}
+
+function clearVodSubtitleTracks() {
+  state.vod.subtitleRequestToken += 1;
+  state.vod.subtitleTracks = [];
+  elements.vodVideo?.querySelectorAll("track[data-stb-subtitle]").forEach((track) => track.remove());
+  if (elements.vodSubtitleSelect) {
+    elements.vodSubtitleSelect.replaceChildren(new Option("Subtitles off", ""));
+    elements.vodSubtitleSelect.value = "";
+    elements.vodSubtitleSelect.hidden = true;
+  }
+}
+
+function applyVodSubtitlePreference(preference = subtitlePreference()) {
+  const tracks = state.vod.subtitleTracks || [];
+  const selected = tracks.some((track) => track.id === preference)
+    ? preference
+    : preference === "off"
+    ? ""
+    : preference === "auto"
+      ? (tracks.find((track) => track.language === "en") ||
+          tracks.find((track) => track.language === "pa") ||
+          tracks.find((track) => track.language === "hi") || tracks[0])?.id || ""
+      : tracks.find((track) => track.language === preference)?.id || "";
+
+  elements.vodVideo?.querySelectorAll("track[data-stb-subtitle]").forEach((element) => {
+    const textTrack = element.track;
+    if (textTrack) textTrack.mode = element.dataset.trackId === selected ? "showing" : "disabled";
+  });
+  if (elements.vodSubtitleSelect) elements.vodSubtitleSelect.value = selected;
+}
+
+async function loadVodSubtitles(item) {
+  clearVodSubtitleTracks();
+  const token = state.vod.subtitleRequestToken;
+  const preference = subtitlePreference();
+  if (preference === "off" || !item?.categoryId || !item?.id || getDefaultPlayer() === "vlc") return;
+
+  try {
+    const payload = await request("/api/vod/subtitles", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        categoryId: item.categoryId,
+        itemId: item.id,
+        language: preference,
+        title: item.subtitleTitle || item.episodeTitle || item.title,
+        year: item.year,
+        clientItem: item,
+      }),
+    });
+    if (token !== state.vod.subtitleRequestToken || state.vod.selected?.id !== item.id) return;
+
+    const tracks = Array.isArray(payload.tracks)
+      ? payload.tracks.filter((track) =>
+          track && typeof track.id === "string" &&
+          /^\/stream\/[A-Za-z0-9_-]+$/.test(String(track.url || ""))
+        )
+      : [];
+    state.vod.subtitleTracks = tracks;
+    if (!tracks.length) return;
+
+    for (const track of tracks) {
+      const element = document.createElement("track");
+      element.kind = "subtitles";
+      element.label = String(track.label || track.language || "Subtitle");
+      element.srclang = String(track.language || "und").slice(0, 12);
+      element.src = String(track.url);
+      element.dataset.stbSubtitle = "1";
+      element.dataset.trackId = track.id;
+      elements.vodVideo.append(element);
+      element.addEventListener("load", () => applyVodSubtitlePreference(), { once: true });
+    }
+
+    if (elements.vodSubtitleSelect) {
+      elements.vodSubtitleSelect.replaceChildren(new Option("Subtitles off", ""));
+      for (const track of tracks) {
+        elements.vodSubtitleSelect.append(new Option(track.label, track.id));
+      }
+      elements.vodSubtitleSelect.hidden = false;
+    }
+    applyVodSubtitlePreference(preference);
+    trackAnalytics("feature_used", { screen: item.kind === "series" ? "series" : "vod", reason: "subtitle-loaded", success: true });
+  } catch {
+    if (token === state.vod.subtitleRequestToken) {
+      trackAnalytics("feature_used", { screen: item.kind === "series" ? "series" : "vod", reason: "subtitle-search-failed", success: false });
+    }
+  }
+}
+
 function resetVodPlayer() {
   stopVodPlayback();
   elements.vodProgressBar.style.width = "0%";
@@ -3040,6 +3136,7 @@ async function playVod(item, resumeFrom = 0, qualityId = "", isRenewal = false) 
   elements.vodControlTitle.textContent = item.title;
 
   showVodNotice("");
+  void loadVodSubtitles(item);
 
   try {
     const payload = await request("/api/vod/play", {
@@ -3463,6 +3560,8 @@ async function playCombinedEpisode(
   elements.vodVideoLoading.hidden = false;
   elements.vodPlayerControls.hidden = true;
   elements.vodControlTitle.textContent = `${series.title} · ${episode.title}`;
+  item.subtitleTitle = `${series.title} · ${episode.title}`;
+  void loadVodSubtitles(item);
   const token = ++state.vod.retryToken;
   try {
     const payload = await request("/api/vod/episode/play", {
@@ -4576,7 +4675,19 @@ elements.playerSelect?.addEventListener("change", (event) => {
   event.target.value = value;
 });
 elements.languageSelect?.addEventListener("change", (event) => localStorage.setItem("appLanguage", event.target.value));
-elements.subtitleSelect?.addEventListener("change", (event) => localStorage.setItem("subtitlePreference", event.target.value));
+elements.subtitleSelect?.addEventListener("change", (event) => {
+  const value = ["off", "auto", "en", "pa", "hi"].includes(event.target.value)
+    ? event.target.value
+    : "off";
+  localStorage.setItem("subtitlePreference", value);
+  if (state.vod.selected) void loadVodSubtitles(state.vod.selected);
+});
+elements.vodSubtitleSelect?.addEventListener("change", (event) => {
+  const selected = String(event.target.value || "");
+  const track = state.vod.subtitleTracks.find((candidate) => candidate.id === selected);
+  localStorage.setItem("subtitlePreference", track?.language || "off");
+  applyVodSubtitlePreference(selected || "off");
+});
 
 function compareVersions(left, right) {
   const a = String(left).replace(/^v/i, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -4599,6 +4710,20 @@ function showUpdateToast(manifest, downloadUrl) {
   elements.updateToast.hidden = false;
   if (updateToastTimer) window.clearTimeout(updateToastTimer);
   updateToastTimer = window.setTimeout(hideUpdateToast, 15000);
+}
+
+function isTrustedUpdateUrl(rawUrl, version = "") {
+  try {
+    const parsed = new URL(String(rawUrl || ""));
+    const releaseVersion = String(version || "").replace(/^v/i, "");
+    return parsed.protocol === "https:" &&
+      parsed.hostname.toLowerCase() === "github.com" &&
+      parsed.username === "" && parsed.password === "" &&
+      parsed.pathname === `/ranveerskh/netplus-player/releases/download/v${releaseVersion}/Netplus-IPTV-Player-Setup-${releaseVersion}.exe` &&
+      /^\d+\.\d+\.\d+$/.test(releaseVersion);
+  } catch {
+    return false;
+  }
 }
 
 function startDirectUpdateDownload(downloadUrl) {
@@ -4652,7 +4777,8 @@ async function checkForUpdates({ silent = false } = {}) {
     const latest = String(manifest.version || APP_VERSION);
     const downloadUrl = String(manifest.downloadUrl || "").trim();
     if (compareVersions(latest, APP_VERSION) > 0) {
-      state.latestUpdateUrl = downloadUrl;
+      const trustedDownloadUrl = isTrustedUpdateUrl(downloadUrl, latest) ? downloadUrl : "";
+      state.latestUpdateUrl = trustedDownloadUrl;
       if (state.analytics.lastUpdateNotice !== latest) {
         state.analytics.lastUpdateNotice = latest;
         trackAnalytics("update_available", {
@@ -4661,9 +4787,13 @@ async function checkForUpdates({ silent = false } = {}) {
           success: true,
         });
       }
-      if (elements.downloadUpdateButton) elements.downloadUpdateButton.hidden = !downloadUrl;
-      if (elements.updateStatus && !silent) elements.updateStatus.textContent = `Version ${latest} is available${manifest.notes ? ` · ${manifest.notes}` : ""}.`;
-      showUpdateToast({ ...manifest, version: latest }, downloadUrl);
+      if (elements.downloadUpdateButton) elements.downloadUpdateButton.hidden = !trustedDownloadUrl;
+      if (elements.updateStatus && !silent) {
+        elements.updateStatus.textContent = trustedDownloadUrl
+          ? `Version ${latest} is available${manifest.notes ? ` · ${manifest.notes}` : ""}.`
+          : `Version ${latest} is published, but its installer link is unavailable right now.`;
+      }
+      showUpdateToast({ ...manifest, version: latest }, trustedDownloadUrl);
     } else {
       state.latestUpdateUrl = "";
       if (elements.downloadUpdateButton) elements.downloadUpdateButton.hidden = true;
@@ -4786,12 +4916,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.14.json";
+  link.download = "netplus-diagnostics-v1.8.15.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.14.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.15.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
