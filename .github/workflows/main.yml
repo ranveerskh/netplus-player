@@ -2,6 +2,7 @@ name: Build Windows installer
 on:
   workflow_dispatch:
   push:
+    branches: ["build-v1.8.14"]
     tags: ["v*"]
 
 permissions:
@@ -31,10 +32,10 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/build-v1.8.14' || startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
-          GH_TOKEN: $env:GITHUB_TOKEN
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $package = Get-Content package.json -Raw | ConvertFrom-Json
           $version = [string]$package.version
@@ -45,8 +46,8 @@ jobs:
 
           gh release view $tag --repo "$env:GITHUB_REPOSITORY" *> $null
           if ($LASTEXITCODE -eq 0) {
-            Write-Host "Release $tag exists; uploading installer."
-            gh release upload $tag $installer.FullName --repo "$env:GITHUB_REPOSITORY" --clobber
+            Write-Host "Release $tag exists; uploading installer without overwriting existing assets."
+            gh release upload $tag $installer.FullName --repo "$env:GITHUB_REPOSITORY"
           } else {
             gh release create $tag $installer.FullName --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "STB PLAY $tag" --generate-notes
           }
