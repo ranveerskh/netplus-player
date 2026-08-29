@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.14 strict search, restored live parental locking, recovery and analytics
+ VERSION: 1.8.15 strict search, restored live parental locking, subtitles, recovery and analytics
  File: server.cjs
 =========================================================
 */
@@ -29,13 +29,15 @@ const PORT = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPo
   : 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.14";
+const APP_VERSION = "1.8.15";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.8.14.json"
+  "netplus-diagnostics-v1.8.15.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 const DEFAULT_ANALYTICS_ENDPOINT = "https://us-central1-stb-play-analytics.cloudfunctions.net/analyticsEvents";
+const SUBTITLE_API_URL = String(process.env.STB_PLAY_SUBTITLE_API_URL || "").trim();
+const SUBTITLE_API_KEY = String(process.env.STB_PLAY_SUBTITLE_API_KEY || "").trim();
 const ANALYTICS_ENDPOINT = String(
   process.env.STB_PLAY_ANALYTICS_ENDPOINT ?? DEFAULT_ANALYTICS_ENDPOINT
 ).trim();
@@ -989,6 +991,9 @@ async function rebuildCatalog() {
       };
     })
     .filter(Boolean);
+  const categoryLockedById = new Map(
+    providerCategories.map((category) => [category.id, category.locked])
+  );
   const commands = new Map();
 
   const channels = rawChannels
@@ -1010,15 +1015,20 @@ async function rebuildCatalog() {
 
       const number = Number(row.number ?? row.channel_number ?? row.num);
 
+      const genreId = String(
+        row.tv_genre_id ?? row.genre_id ?? row.genreId ?? "0"
+      ).trim() || "0";
+
       return {
         id,
         name: String(channel.name).trim(),
         number: Number.isFinite(number) ? number : null,
-        genreId: String(
-          row.tv_genre_id ?? row.genre_id ?? row.genreId ?? "0"
-        ).trim() || "0",
+        genreId,
         hd: providerFlag(row.hd),
-        adultLocked: isAdult(channel.name),
+        /* Keep the provider category as-is, while also protecting a channel
+           reached through a locked provider category. This is the v1.8.12
+           behavior and avoids the broken synthetic adult bucket. */
+        adultLocked: isAdult(channel.name) || Boolean(categoryLockedById.get(genreId)),
       };
     })
     .sort(
@@ -1960,6 +1970,197 @@ async function getVodInfo(item) {
 
   vodInfoCache.set(key, { value, expiresAt: Date.now() + 5 * 60_000 });
   return value;
+}
+
+const SUBTITLE_CONTAINER_KEY = /^(?:subtitles?|captions?|closed[_-]?captions?|subtitle_tracks?|caption_tracks?|tracks?)$/i;
+const SUBTITLE_URL_KEY = /^(?:url|uri|src|source|file|path|srt|vtt|subtitle[_-]?(?:url|uri|file|src)|caption[_-]?(?:url|uri|file|src))$/i;
+const SUBTITLE_LANGUAGE_KEY = /^(?:language|lang|srclang|subtitle[_-]?language|caption[_-]?language)$/i;
+const SUBTITLE_LABEL_KEY = /^(?:label|name|title|language_name|lang_name)$/i;
+
+function subtitleLanguageCode(value) {
+  const raw = String(value || "").trim().toLowerCase().replace(/_/g, "-");
+  if (!raw) return "und";
+  const base = raw.split(/[-\s]/)[0];
+  if (["en", "eng", "english"].includes(raw) || ["en", "eng"].includes(base)) return "en";
+  if (["pa", "pan", "pun", "punjabi"].includes(raw) || ["pa", "pan", "pun"].includes(base)) return "pa";
+  if (["hi", "hin", "hindi"].includes(raw) || ["hi", "hin"].includes(base)) return "hi";
+  return raw.slice(0, 12) || "und";
+}
+
+function subtitleLabel(language, fallback = "Subtitle") {
+  return {
+    en: "English",
+    pa: "Punjabi",
+    hi: "Hindi",
+    und: fallback,
+  }[language] || String(fallback || language || "Subtitle").slice(0, 48);
+}
+
+function subtitleSourceUrl(rawValue) {
+  const raw = String(rawValue || "").trim();
+  if (!raw || raw.length > 2048) return "";
+
+  let base = "";
+  try { base = String(readConfig()?.endpoint || "").trim(); } catch {}
+
+  let target;
+  try {
+    target = new URL(raw, base || undefined);
+  } catch {
+    return "";
+  }
+
+  if (!/^https?:$/.test(target.protocol) || target.username || target.password) return "";
+
+  /* A provider may legitimately host its subtitle file on the same private
+     portal address. Other private targets are rejected to avoid turning the
+     local player into a generic SSRF proxy. */
+  let sameAsPortal = false;
+  try { sameAsPortal = Boolean(base) && target.origin === new URL(base).origin; } catch {}
+  if (isPrivatePosterHost(target.hostname) && !sameAsPortal) return "";
+  return target.toString();
+}
+
+function collectSubtitleCandidates(value, output = [], inherited = {}, subtitleContext = false, depth = 0, seen = new Set()) {
+  if (value == null || depth > 8) return output;
+
+  if (typeof value === "string" || typeof value === "number") {
+    if (subtitleContext) output.push({ ...inherited, url: String(value).trim() });
+    return output;
+  }
+
+  if (Array.isArray(value)) {
+    for (const child of value) collectSubtitleCandidates(child, output, inherited, subtitleContext, depth + 1, seen);
+    return output;
+  }
+
+  if (typeof value !== "object" || seen.has(value)) return output;
+  seen.add(value);
+
+  const local = { ...inherited };
+  for (const [key, child] of Object.entries(value)) {
+    if (SUBTITLE_LANGUAGE_KEY.test(key) && (typeof child === "string" || typeof child === "number")) {
+      local.language = String(child);
+    }
+    if (SUBTITLE_LABEL_KEY.test(key) && (typeof child === "string" || typeof child === "number")) {
+      local.label = String(child);
+    }
+    if (/^(?:format|type|extension)$/i.test(key) && (typeof child === "string" || typeof child === "number")) {
+      local.format = String(child);
+    }
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    const subtitleKey = SUBTITLE_CONTAINER_KEY.test(key) || /subtitle|caption/i.test(key);
+    if (SUBTITLE_URL_KEY.test(key) && (subtitleContext || subtitleKey)) {
+      if (typeof child === "string" || typeof child === "number") {
+        output.push({ ...local, url: String(child).trim() });
+      }
+      continue;
+    }
+    if ((subtitleKey || subtitleContext) && child && typeof child === "object") {
+      collectSubtitleCandidates(child, output, local, true, depth + 1, seen);
+    }
+  }
+  return output;
+}
+
+function normalizeSubtitleTracks(value, source = "provider") {
+  const candidates = collectSubtitleCandidates(value);
+  const tracks = [];
+  const seen = new Set();
+
+  for (const candidate of candidates) {
+    const url = subtitleSourceUrl(candidate.url);
+    if (!url) continue;
+    const language = subtitleLanguageCode(candidate.language);
+    const key = `${language}\u0000${url}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const format = String(candidate.format || "").toLowerCase() || (/\.vtt(?:$|\?)/i.test(url) ? "vtt" : "srt");
+    tracks.push({
+      language,
+      label: subtitleLabel(language, candidate.label),
+      url,
+      format: /vtt|webvtt/i.test(format) ? "vtt" : "srt",
+      source,
+    });
+  }
+  return tracks.slice(0, 12);
+}
+
+async function getConfiguredSubtitleTracks(title, year, language) {
+  if (!SUBTITLE_API_URL) return [];
+
+  let endpoint;
+  try { endpoint = new URL(SUBTITLE_API_URL); } catch { return []; }
+  if (!/^https?:$/.test(endpoint.protocol) || endpoint.username || endpoint.password || isPrivatePosterHost(endpoint.hostname)) {
+    recordDiagnostic("vod.subtitle_api_rejected", { reason: "unsafe-endpoint" });
+    return [];
+  }
+
+  endpoint.searchParams.set("query", String(title || "").slice(0, 160));
+  if (year) endpoint.searchParams.set("year", String(year).slice(0, 4));
+  endpoint.searchParams.set("languages", language && language !== "auto" ? language : "en,pa,hi");
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        Accept: "application/json",
+        ...(SUBTITLE_API_KEY ? { Authorization: `Bearer ${SUBTITLE_API_KEY}` } : {}),
+      },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!response.ok) throw new Error(`subtitle service returned ${response.status}`);
+    return normalizeSubtitleTracks(await response.json(), "configured-api");
+  } catch (error) {
+    recordDiagnostic("vod.subtitle_api_failed", { status: error?.status, message: error?.message });
+    return [];
+  }
+}
+
+async function getVodSubtitles(categoryId, itemId, clientFallback, language = "auto", title = "", year = "") {
+  const item = await findVodItem(String(categoryId), String(itemId), clientFallback);
+  if (!item) throw new PlayerError("Choose a valid movie or episode.", 404);
+
+  let info = {};
+  try { info = await getVodInfo(item); } catch (error) {
+    recordDiagnostic("vod.subtitle_info_failed", { itemId: item.id, status: error?.status });
+  }
+
+  const providerTracks = normalizeSubtitleTracks(info, "provider");
+  const configuredTracks = providerTracks.length
+    ? []
+    : await getConfiguredSubtitleTracks(title || item.title, year || item.year, language);
+  const requested = String(language || "auto").toLowerCase();
+  const allTracks = [...providerTracks, ...configuredTracks];
+  const filtered = requested === "auto" || requested === "off"
+    ? allTracks
+    : allTracks.filter((track) => track.language === requested);
+  const session = (await activeCatalog()).session;
+  const sourceTracks = filtered.map((track, index) => ({
+    ...track,
+    id: `${track.language}-${track.source}-${index}`,
+    url: createRelayTarget(
+      track.url,
+      30 * 60_000,
+      "subtitle",
+      false,
+      track.source === "provider" ? relayCredentials(session) : null
+    ),
+  }));
+
+  return {
+    tracks: sourceTracks.map(({ id, url, language: trackLanguage, label, format, source }) => ({
+      id,
+      language: trackLanguage,
+      label,
+      format,
+      source,
+      url,
+    })),
+    message: sourceTracks.length ? "Online subtitles ready." : "No online subtitles were found for this title.",
+  };
 }
 
 async function resolveVodCommand(item) {
@@ -3470,7 +3671,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.14.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.15.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -3584,6 +3785,14 @@ function isValidHlsManifest(body) {
     .replace(/^\uFEFF/, "")
     .trimStart()
     .startsWith("#EXTM3U");
+}
+
+function normalizeSubtitleBody(body) {
+  const raw = String(body || "").replace(/^\uFEFF/, "").trim();
+  if (!raw || /<(?:!doctype|html|head|body)\b/i.test(raw.slice(0, 512))) return "";
+  if (/^WEBVTT(?:\s|$)/i.test(raw)) return `${raw}\n`;
+  if (!/\d{1,2}:\d{2}:\d{2}[,.]\d{3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[,.]\d{3}/.test(raw)) return "";
+  return `WEBVTT\n\n${raw.replace(/(\d{1,2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")}\n`;
 }
 
 async function fetchRelayUpstream(target, headers) {
@@ -3739,6 +3948,23 @@ async function relay(req, res, ticket) {
   }
 
   const contentType = upstream.headers.get("content-type") || "";
+  const isSubtitle = /^subtitle(?::|$)/i.test(String(target.context || ""));
+  if (isSubtitle) {
+    const contentLength = Number(upstream.headers.get("content-length") || 0);
+    if (contentLength > 2 * 1024 * 1024) return text(res, 413, "Subtitle file is too large.");
+    const subtitleBody = normalizeSubtitleBody(await upstream.text());
+    if (!subtitleBody) {
+      recordDiagnostic("relay.invalid_subtitle", {
+        context: target.context,
+        url: finalUrl || upstream.url || target.url,
+        status: upstream.status,
+        contentType,
+      });
+      return text(res, 502, "The subtitle file is unavailable or invalid.");
+    }
+    return text(res, 200, subtitleBody, "text/vtt; charset=utf-8");
+  }
+
   const isManifest =
     isLikelyHls(target.url, contentType) ||
     isLikelyHls(finalUrl || upstream.url, contentType);
@@ -4115,6 +4341,30 @@ async function handle(req, res) {
     }
 
     return json(res, 200, await getCombinedVodDetail(categoryId, itemId, clientVodFallback()));
+  }
+
+  if (req.method === "POST" && requestUrl.pathname === "/api/vod/subtitles") {
+    const body = await readJson(req);
+    const categoryId = String(body.categoryId || "").trim();
+    const itemId = String(body.itemId || "").trim();
+    const language = String(body.language || "auto").trim().toLowerCase();
+    if (!categoryId || !itemId || !["off", "auto", "en", "pa", "hi"].includes(language)) {
+      throw new PlayerError("Choose a valid subtitle request.", 400);
+    }
+    if (language === "off") return json(res, 200, { tracks: [], message: "Subtitles are off." });
+
+    return json(
+      res,
+      200,
+      await getVodSubtitles(
+        categoryId,
+        itemId,
+        body.clientItem,
+        language,
+        String(body.title || "").slice(0, 160),
+        String(body.year || "").slice(0, 4)
+      )
+    );
   }
 
   if (req.method === "GET" && requestUrl.pathname === "/api/vod/seasons") {
