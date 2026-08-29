@@ -1,0 +1,15 @@
+STB PLAY v1.8.13 strict search, Live 18+ PIN category and playback recovery
+
+Included fixes:
+- VOD search matches complete words in display titles and alternate titles;
+  provider paths and unrelated metadata are excluded.
+- Live TV shows a local [PIN] 18+ channels category when adult-marked or
+  clearly 18+ channels are returned by the provider.
+- A transient portal MAC authorization 401 is retried once.
+- A missing live channel refreshes the catalogue once before showing the
+  unavailable message.
+- Diagnostic instructions explain that users should download and attach a
+  report only when support requests it.
+
+Expected Windows release asset:
+Netplus-IPTV-Player-Setup-1.8.13.exe

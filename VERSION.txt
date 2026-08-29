@@ -1,3 +1,3 @@
 STB PLAY IPTV Player
-Version: 1.8.12
-Build: Premium UI + Fresh VOD create_link Playback + Provider-wide Search
+Version: 1.8.13
+Build: Strict VOD Search + Live 18+ PIN Category + Playback Recovery

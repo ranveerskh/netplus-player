@@ -1,5 +1,5 @@
 {
-  "version": "1.8.12",
-  "notes": "Improved 02-series MAC reuse, automatic VLC fallback, and installer auto-start",
-  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.12/Netplus-IPTV-Player-Setup-1.8.12.exe"
+  "version": "1.8.13",
+  "notes": "Strict title search, Live 18+ PIN category, and playback recovery fixes",
+  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.13/Netplus-IPTV-Player-Setup-1.8.13.exe"
 }
