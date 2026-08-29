@@ -2,7 +2,7 @@
 <!--
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.11 Portal loading and update delivery release
+ VERSION: 1.8.12 MAC reuse, VLC fallback and installer update release
  File: index.html
 =========================================================
 -->
@@ -10,12 +10,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="app-version" content="1.8.11-portal-loading-update">
+  <meta name="app-version" content="1.8.12-mac-vlc-installer-update">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>STB PLAY · 1.8.11</title>
-  <link rel="stylesheet" href="styles.css?v=1.8.11-portal-loading-update">
+  <title>STB PLAY · 1.8.12</title>
+  <link rel="stylesheet" href="styles.css?v=1.8.12-mac-vlc-installer-update">
   <script src="hls.min.js"></script>
 </head>
 
@@ -56,15 +56,15 @@
 
     <label for="mac">MAC Address</label>
     <input id="mac" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
-      spellcheck="false" maxlength="17" placeholder="00:1A:79:00:00:00" required>
-    <small class="field-help">A MAC is generated automatically and remains editable.</small>
+      spellcheck="false" maxlength="17" placeholder="02:00:00:00:00:00" required>
+    <small class="field-help">A unique 02-series MAC is generated automatically and remains editable.</small>
 
     <input id="parentalPin" type="hidden" value="">
 
-    <small class="field-help">The MAC is generated automatically. Edit it only if your provider assigned a different one.</small>
+    <small class="field-help">The same MAC is reused for additional portals. Change it only if your provider assigned a different one.</small>
 
     <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
-    <p class="setup-version">STB PLAY v1.8.11 · Premium IPTV player</p>
+    <p class="setup-version">STB PLAY v1.8.12 · Premium IPTV player</p>
   </form>
 </main>
 
@@ -422,7 +422,7 @@
         <details><summary>Privacy policy</summary><p>Portal details, MAC address, preferences, favourites, and watch progress are stored locally on this device. Diagnostics are opt-in: collection starts only after you press Start fresh test. Reports exclude your MAC address, PIN, tokens, cookies, provider hostname, and full stream links. STB PLAY does not intentionally sell personal data.</p></details>
         <details><summary>Terms and acceptable use</summary><p>You are responsible for using lawful, authorised portals and content. Do not use STB PLAY to access, copy, redistribute, or share content without permission. The software is provided as-is and availability is not guaranteed.</p></details>
       </div>
-      <div class="update-panel"><div><strong>Application updates</strong><small id="updateStatus">Check whether a newer STB PLAY version is available.</small></div><div class="update-actions"><button id="checkUpdatesButton" class="secondary-wide-button" type="button">Check for updates</button><button id="downloadUpdateButton" class="primary-button" type="button" hidden>Download update</button></div></div>
+      <div class="update-panel"><div><strong>Application updates</strong><small id="updateStatus">Check whether a newer STB PLAY version is available.</small></div><div class="update-actions"><button id="checkUpdatesButton" class="secondary-wide-button" type="button">Check for updates</button><button id="downloadUpdateButton" class="primary-button" type="button" hidden>Download &amp; install</button></div></div>
     </section>
     <section class="settings-section settings-diagnostic">
       <h3>Playback diagnostic</h3>
@@ -439,7 +439,7 @@
       <button id="resetPortalButton" class="danger-btn" type="button">Manage portals</button>
     </section>
     </div>
-    <p class="settings-version">STB PLAY v1.8.11 · Premium Home + personalised recommendations</p>
+    <p class="settings-version">STB PLAY v1.8.12 · Premium Home + personalised recommendations</p>
   </div>
 </div>
 
@@ -454,8 +454,8 @@
       <label for="portalEditorUrl">Portal URL</label>
       <input id="portalEditorUrl" type="url" placeholder="http://example.com" required>
       <label for="portalEditorMac">MAC address</label>
-      <input id="portalEditorMac" type="text" inputmode="text" maxlength="17" placeholder="00:1A:79:00:00:00" required>
-      <p class="field-help">A MAC is generated for new portals and remains fully editable.</p>
+  <input id="portalEditorMac" type="text" inputmode="text" maxlength="17" placeholder="02:00:00:00:00:00" required>
+      <p class="field-help">New portals reuse the existing MAC by default. It remains fully editable.</p>
       <button class="primary-button" type="submit">Save portal</button>
       <span id="portalEditorNotice" class="settings-notice" hidden></span>
     </form>
@@ -491,9 +491,9 @@
   <p class="eyebrow">Application update</p>
   <strong id="updateToastTitle">A new STB PLAY version is available</strong>
   <p id="updateToastText">Download the latest installer.</p>
-  <button id="updateToastDownload" class="primary-button" type="button">Download update</button>
+  <button id="updateToastDownload" class="primary-button" type="button">Download &amp; install</button>
 </aside>
 
-<script src="app.js?v=1.8.11-portal-loading-update"></script>
+<script src="app.js?v=1.8.12-mac-vlc-installer-update"></script>
 </body>
 </html>

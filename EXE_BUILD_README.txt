@@ -1,9 +1,9 @@
-STB PLAY — v1.8.11 PUBLIC RELEASE
+STB PLAY — v1.8.12 PUBLIC RELEASE
 
 This is a complete replacement source package. After installation,
-Settings must show “STB PLAY v1.8.11”.
+Settings must show “STB PLAY v1.8.12”.
 
-WHAT CHANGED IN v1.8.11
+WHAT CHANGED IN v1.8.12
 
 0.1. The bundled HLS.js runtime and logo assets are included in the GitHub
      build. Earlier v1.8.9 packaging omitted these runtime files, which made
@@ -61,6 +61,16 @@ WHAT CHANGED IN v1.8.11
    retain the last scroll position for the selected season.
 21. Returning from Home playback restores and renders the Movies & Series All
    catalogue instead of leaving a stale empty grid.
+22. New portal IDs use a locally administered 02-series MAC and additional
+   portals reuse the existing MAC unless it is manually changed.
+23. Successful portal loading holds the completed 100% state for one second
+   before opening Home. Startup also shows progress before the saved portal
+   refresh begins.
+24. Auto Live TV playback opens VLC after three seconds of buffering or an
+   unsupported codec. A provider response with no stream shows a simple
+   temporarily-unavailable message.
+25. The Windows update button downloads the trusted installer, starts it
+   automatically, and closes STB PLAY after the installer launches.
 
 BUILD THE WINDOWS EXE
 
@@ -69,21 +79,21 @@ BUILD THE WINDOWS EXE
 3. Upload and replace ALL extracted files and folders, then commit the changes.
 4. The “Build Windows installer” workflow builds the installer and publishes
    a GitHub Release automatically after the commit reaches main.
-5. The release asset is named Netplus-IPTV-Player-Setup-1.8.11.exe. The
+5. The release asset is named Netplus-IPTV-Player-Setup-1.8.12.exe. The
    installer bootstrapper can download it from Releases/latest.
-6. Close the old app and run the STB-PLAY installer for v1.8.11. It upgrades
+6. Close the old app and run the STB-PLAY installer for v1.8.12. It upgrades
    the previous version; normally you do not need to uninstall first.
 
 TEST AFTER INSTALLATION
 
-1. Open Settings and confirm v1.8.11 Premium Home + Personalised Recommendations UI is shown.
+1. Open Settings and confirm v1.8.12 Premium Home + Personalised Recommendations UI is shown.
 2. Open Settings > Playback and confirm Auto, Internal player, and VLC are present.
 3. Play a Live TV channel continuously for at least 90 seconds.
 4. Open multiple movies and confirm Quality -> Play.
 5. Open a title from a SHOWS category and confirm Seasons -> Episodes ->
    Quality -> Play.
 6. If any problem remains, choose Settings -> Start fresh test, reproduce one
-   Live TV and one VOD attempt, then send netplus-diagnostics-v1.8.11.json.
+   Live TV and one VOD attempt, then send netplus-diagnostics-v1.8.12.json.
 
 The diagnostic report excludes the MAC address, parental PIN, portal token,
 cookies, and full stream links.

@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.11 Portal loading and update delivery release
+ VERSION: 1.8.12 MAC reuse, VLC fallback and installer update release
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.11";
+const APP_VERSION = "1.8.12";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const UPDATE_MANIFEST_URL = "https://raw.githubusercontent.com/ranveerskh/netplus-player/main/update.json";
 
@@ -92,6 +92,7 @@ const state = {
     hls: null, episodeScrollTop: 0, episodeScrollSeason: "", episodeScrollPositions: {},
   },
   liveWatchdogTimer: null,
+  liveAutoVlcTimer: null,
   liveLastFragmentAt: 0,
   liveStableSince: 0,
   liveRecoveryInFlight: false,
@@ -624,14 +625,16 @@ function showVodNotice(message = "", fallback = null) {
   elements.vodNotice.hidden = !message;
 }
 
-async function playInVlc(kind) {
-  const fallback = state.externalPlayer[kind];
+async function playInVlc(kind, fallbackOverride = null, automatic = false) {
+  const fallback = fallbackOverride || state.externalPlayer[kind];
   if (!fallback) return;
   const button = kind === "vod" ? elements.vodPlayInVlcButton : elements.playInVlcButton;
   if (!button) return;
 
+  state.externalPlayer[kind] = fallback;
   button.disabled = true;
   button.textContent = "Opening VLC…";
+  if (automatic) button.hidden = true;
   try {
     await request("/api/play-vlc", {
       method: "POST",
@@ -647,6 +650,7 @@ async function playInVlc(kind) {
       if (state.externalPlayer[kind]?.stream !== fallback.stream) return;
       button.disabled = false;
       button.textContent = "Play in VLC";
+      if (automatic) button.hidden = true;
     }, 2500);
   } catch (error) {
     const message = error.message || "VLC could not be opened.";
@@ -655,12 +659,35 @@ async function playInVlc(kind) {
   }
 }
 
-function openPreferredExternalPlayer(kind, stream, title) {
+function openPreferredExternalPlayer(kind, stream, title, options = {}) {
+  const { automatic = false } = options;
   const fallback = { stream: String(stream || ""), title: String(title || "STB PLAY") };
   if (!fallback.stream) return false;
-  if (kind === "vod") showVodNotice("Opening in VLC…", fallback);
-  else showNotice("Opening in VLC…", fallback);
-  void playInVlc(kind);
+  if (kind === "live" && automatic) {
+    clearTimeout(state.liveAutoVlcTimer);
+    state.liveAutoVlcTimer = null;
+    clearInterval(state.liveWatchdogTimer);
+    state.liveWatchdogTimer = null;
+    destroyHls("live");
+    stopMedia(elements.video);
+    elements.videoLoading.hidden = true;
+    elements.customControls.hidden = true;
+  }
+  const message = automatic
+    ? "Built-in playback is still buffering. Opening VLC…"
+    : "Opening in VLC…";
+  if (kind === "vod") {
+    if (automatic) {
+      showVodNotice(message);
+      state.externalPlayer.vod = fallback;
+      elements.vodPlayInVlcButton.hidden = true;
+    } else showVodNotice(message, fallback);
+  } else if (automatic) {
+    showNotice(message);
+    state.externalPlayer.live = fallback;
+    elements.playInVlcButton.hidden = true;
+  } else showNotice(message, fallback);
+  void playInVlc(kind, fallback, automatic);
   return true;
 }
 
@@ -747,6 +774,8 @@ function stopLivePlayback(clearSelection = false) {
   state.liveRetryToken += 1;
   clearInterval(state.liveWatchdogTimer);
   state.liveWatchdogTimer = null;
+  clearTimeout(state.liveAutoVlcTimer);
+  state.liveAutoVlcTimer = null;
   state.liveRecoveryInFlight = false;
   state.liveRecoveryHistory = [];
   state.liveStableSince = 0;
@@ -921,8 +950,8 @@ function setVodFilter(filter) {
 
 /* =====================================================
    MAC / PIN INPUT
-   No forced 00:1A:79 prefix.
-   001A79123456 => 00:1A:79:12:34:56
+   Locally administered 02 series.
+   02A4B6123456 => 02:A4:B6:12:34:56
 ===================================================== */
 
 function formatMacValue(raw) {
@@ -979,8 +1008,10 @@ for (const input of [elements.parentalPin, elements.unlockPin, elements.currentP
 }
 
 function generatedMac() {
-  const bytes = crypto.getRandomValues(new Uint8Array(3));
-  return `00:1A:79:${[...bytes].map((value) => value.toString(16).padStart(2, "0")).join(":").toUpperCase()}`;
+  /* 02 marks this as a locally administered, unicast MAC-style identifier.
+     The remaining bytes are random and editable by the user. */
+  const bytes = crypto.getRandomValues(new Uint8Array(5));
+  return `02:${[...bytes].map((value) => value.toString(16).padStart(2, "0")).join(":").toUpperCase()}`;
 }
 
 function showPortalEditor(portal = null) {
@@ -989,7 +1020,8 @@ function showPortalEditor(portal = null) {
   elements.portalEditorId.value = portal?.id || "";
   elements.portalEditorNickname.value = portal?.nickname || "";
   elements.portalEditorUrl.value = portal?.portalUrl || "";
-  elements.portalEditorMac.value = formatMacValue(portal?.mac || generatedMac());
+  const reusableMac = state.portals[0]?.mac || elements.mac?.value || generatedMac();
+  elements.portalEditorMac.value = formatMacValue(portal?.mac || reusableMac);
   elements.portalEditorNotice.hidden = true;
   elements.portalEditorModal.hidden = false;
   requestAnimationFrame(() => elements.portalEditorNickname.focus());
@@ -1082,7 +1114,10 @@ async function refreshPortalWithProgress(title, options = {}) {
     const loaded = await refreshContent(false, { throwOnError: true, onProgress: setPortalLoadingProgress });
     if (!loaded) throw new Error("Portal catalogue was not loaded.");
     setPortalLoadingProgress(100, "Complete", "Portal loaded successfully");
-    await new Promise((resolve) => requestAnimationFrame(resolve));
+    /* Leave the completed state visible long enough to be understood before
+       revealing Home. Otherwise a fast success looks like a 28% bar that
+       simply vanished. */
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     elements.portalLoadingModal.hidden = true;
     return true;
   } catch (error) {
@@ -1456,6 +1491,34 @@ function livePlaybackFailed(message, stream = "") {
   } : null);
 }
 
+function showLivePlaybackFailure(message, stream = "") {
+  if (getDefaultPlayer() === "auto" && stream && openPreferredExternalPlayer("live", stream, state.selected?.name || "Live TV", { automatic: true })) {
+    return;
+  }
+  livePlaybackFailed(message, stream);
+}
+
+function scheduleLiveAutoVlcFallback(stream, title, token) {
+  clearTimeout(state.liveAutoVlcTimer);
+  state.liveAutoVlcTimer = null;
+  if (getDefaultPlayer() !== "auto" || !stream) return;
+
+  state.liveAutoVlcTimer = setTimeout(() => {
+    state.liveAutoVlcTimer = null;
+    if (token !== state.liveRetryToken || !state.selected || state.selected.kind !== "live") return;
+    if (getDefaultPlayer() !== "auto") return;
+
+    const isPlaying = !elements.video.paused && elements.video.readyState >= 3;
+    if (isPlaying) return;
+
+    recordClientDiagnostic("client.live_auto_vlc_fallback", {
+      channelId: state.selected.id,
+      reason: "not-playing-after-timeout",
+    });
+    openPreferredExternalPlayer("live", stream, title, { automatic: true });
+  }, 3000);
+}
+
 function attachLiveHls(stream, token) {
   const hls = new window.Hls({
     enableWorker: false,
@@ -1504,7 +1567,7 @@ function attachLiveHls(stream, token) {
     );
 
     if (state.liveRecoveryHistory.length >= 4) {
-      livePlaybackFailed(
+      showLivePlaybackFailure(
         "The built-in player could not decode this stream after several recovery attempts."
         + " You can open it in VLC.",
         stream
@@ -1544,8 +1607,13 @@ function attachLiveHls(stream, token) {
       }
 
       state.liveRecoveryInFlight = false;
+      const renewedStream = String(payload?.stream || "");
+      if (!renewedStream) {
+        showLivePlaybackFailure("This channel is temporarily unavailable. Please try again later or contact your provider.");
+        return;
+      }
       showNotice("");
-      attachLiveHls(payload.stream, recoveryToken);
+      attachLiveHls(renewedStream, recoveryToken);
     }).catch((error) => {
       if (recoveryToken !== state.liveRetryToken || state.selected?.id !== selectedId) return;
       state.liveRecoveryInFlight = false;
@@ -1608,12 +1676,12 @@ function attachLiveHls(stream, token) {
     const now = Date.now();
 
     if (isUnsupportedCodec) {
-      livePlaybackFailed("This channel uses an audio/video codec that this player cannot decode.", stream);
+      showLivePlaybackFailure("This channel uses an audio/video codec that this player cannot decode.", stream);
       return;
     }
 
     if (responseCode === 415) {
-      livePlaybackFailed("This channel uses an audio/video codec that this player cannot decode.", stream);
+      showLivePlaybackFailure("This channel uses an audio/video codec that this player cannot decode.", stream);
       return;
     }
 
@@ -1704,6 +1772,7 @@ function attachLiveHls(stream, token) {
   hls.loadSource(stream);
   hls.attachMedia(elements.video);
   state.liveLastFragmentAt = Date.now();
+  scheduleLiveAutoVlcFallback(stream, state.selected?.name || "Live TV", token);
   clearInterval(state.liveWatchdogTimer);
   state.liveWatchdogTimer = setInterval(() => {
     if (token !== state.liveRetryToken || !state.selected || elements.video.paused) return;
@@ -1745,6 +1814,7 @@ async function playSelectedLive(isRecovery = false) {
   elements.playerModeBadge.textContent = "LIVE";
   elements.nowPlaying.textContent = selected.name;
 
+  let playbackStream = "";
   try {
     const payload = await request("/api/play", {
       method: "POST",
@@ -1753,20 +1823,23 @@ async function playSelectedLive(isRecovery = false) {
     });
 
     if (token !== state.liveRetryToken || state.selected?.id !== selected.id) return;
+    playbackStream = String(payload.stream || "");
+    if (!playbackStream) throw new Error("The provider did not return a playable link.");
 
     if (getDefaultPlayer() === "vlc") {
       elements.videoLoading.hidden = true;
-      openPreferredExternalPlayer("live", payload.stream, selected.name);
+      openPreferredExternalPlayer("live", playbackStream, selected.name);
       return;
     }
 
     if (window.Hls?.isSupported()) {
-      attachLiveHls(payload.stream, token);
+      attachLiveHls(playbackStream, token);
       return;
     }
 
     if (elements.video.canPlayType("application/vnd.apple.mpegurl")) {
-      elements.video.src = payload.stream;
+      elements.video.src = playbackStream;
+      scheduleLiveAutoVlcFallback(playbackStream, selected.name, token);
       elements.video.addEventListener("loadedmetadata", () => {
         if (token !== state.liveRetryToken) return;
         elements.videoLoading.hidden = true;
@@ -1776,13 +1849,18 @@ async function playSelectedLive(isRecovery = false) {
       return;
     }
 
-    if (getDefaultPlayer() === "auto" && openPreferredExternalPlayer("live", payload.stream, selected.name)) {
+    if (getDefaultPlayer() === "auto" && openPreferredExternalPlayer("live", playbackStream, selected.name)) {
       return;
     }
 
     throw new Error("Built-in HLS playback is unavailable. Select VLC in Settings or install VLC.");
   } catch (error) {
-    if (token === state.liveRetryToken) livePlaybackFailed(error.message);
+    if (token === state.liveRetryToken) {
+      showLivePlaybackFailure(
+        "This channel is temporarily unavailable. Please try again later or contact your provider.",
+        playbackStream
+      );
+    }
   }
 }
 
@@ -4218,10 +4296,7 @@ function showUpdateToast(manifest, downloadUrl) {
   updateToastTimer = window.setTimeout(hideUpdateToast, 15000);
 }
 
-function startUpdateDownload(downloadUrl = state.latestUpdateUrl) {
-  if (!downloadUrl) return;
-  /* The manifest points to the .exe asset itself, so the browser/Electron
-     download handler starts the installer download without opening Releases. */
+function startDirectUpdateDownload(downloadUrl) {
   const link = document.createElement("a");
   link.href = downloadUrl;
   link.download = "";
@@ -4229,6 +4304,31 @@ function startUpdateDownload(downloadUrl = state.latestUpdateUrl) {
   document.body.append(link);
   link.click();
   link.remove();
+}
+
+async function startUpdateDownload(downloadUrl = state.latestUpdateUrl) {
+  if (!downloadUrl) return;
+
+  /* The packaged Windows app downloads to a temporary folder, launches the
+     installer, and then closes itself. Browser/dev mode keeps the direct
+     asset download fallback. */
+  if (window.stbPlay?.installUpdate) {
+    const buttons = [elements.downloadUpdateButton, elements.updateToastDownload].filter(Boolean);
+    buttons.forEach((button) => { button.disabled = true; button.textContent = "Downloading…"; });
+    if (elements.updateStatus) elements.updateStatus.textContent = "Downloading update… The installer will start automatically.";
+    try {
+      await window.stbPlay.installUpdate(downloadUrl);
+      if (elements.updateStatus) elements.updateStatus.textContent = "Installer is starting…";
+      hideUpdateToast();
+    } catch (error) {
+      buttons.forEach((button) => { button.disabled = false; button.textContent = "Download & install"; });
+      if (elements.updateStatus) elements.updateStatus.textContent = error.message || "Automatic installation failed. Direct download started instead.";
+      startDirectUpdateDownload(downloadUrl);
+    }
+    return;
+  }
+
+  startDirectUpdateDownload(downloadUrl);
 }
 
 async function checkForUpdates({ silent = false } = {}) {
@@ -4358,12 +4458,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.11.json";
+  link.download = "netplus-diagnostics-v1.8.12.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.8.11.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.8.12.json file here.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });

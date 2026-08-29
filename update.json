@@ -1,5 +1,5 @@
 {
-  "version": "1.8.11",
-  "notes": "Added portal loading progress on startup and direct installer downloads",
-  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.11/Netplus-IPTV-Player-Setup-1.8.11.exe"
+  "version": "1.8.12",
+  "notes": "Improved 02-series MAC reuse, automatic VLC fallback, and installer auto-start",
+  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.12/Netplus-IPTV-Player-Setup-1.8.12.exe"
 }
