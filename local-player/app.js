@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.10 HLS runtime and Settings repair release
+ VERSION: 1.8.11 Portal loading and update delivery release
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.10";
+const APP_VERSION = "1.8.11";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const UPDATE_MANIFEST_URL = "https://raw.githubusercontent.com/ranveerskh/netplus-player/main/update.json";
 
@@ -43,6 +43,7 @@ const state = {
   activePortalId: null,
   subscription: null,
   recoveryConfigured: false,
+  latestUpdateUrl: "",
 
   vod: {
     categories: [],
@@ -305,7 +306,15 @@ const elements = {
   portalProgressPhase: $("#portalProgressPhase"),
   portalLoadingError: $("#portalLoadingError"),
   portalLoadingBackButton: $("#portalLoadingBackButton"),
+  updateToast: $("#updateToast"),
+  updateToastTitle: $("#updateToastTitle"),
+  updateToastText: $("#updateToastText"),
+  updateToastDownload: $("#updateToastDownload"),
+  dismissUpdateToast: $("#dismissUpdateToast"),
+  downloadUpdateButton: $("#downloadUpdateButton"),
 };
+
+let updateToastTimer = null;
 
 async function request(url, options = {}) {
   const response = await fetch(url, { cache: "no-store", ...options });
@@ -1062,8 +1071,13 @@ function failPortalLoading(error) {
   recordClientDiagnostic("client.portal_load_failed", { message: error?.message || "unknown" });
 }
 
-async function refreshPortalWithProgress(title) {
-  showPortalLoading(title);
+async function refreshPortalWithProgress(title, options = {}) {
+  const { alreadyVisible = false } = options;
+  if (!alreadyVisible) showPortalLoading(title);
+  else {
+    elements.portalLoadingTitle.textContent = `${title || "Portal"} · Loading`;
+    setPortalLoadingProgress(5, "Preparing", "Preparing portal connection…");
+  }
   try {
     const loaded = await refreshContent(false, { throwOnError: true, onProgress: setPortalLoadingProgress });
     if (!loaded) throw new Error("Portal catalogue was not loaded.");
@@ -4188,28 +4202,72 @@ function compareVersions(left, right) {
   return 0;
 }
 
-async function checkForUpdates() {
-  if (!elements.updateStatus || !elements.checkUpdatesButton) return;
-  elements.checkUpdatesButton.disabled = true;
-  elements.checkUpdatesButton.textContent = "Checking…";
-  elements.updateStatus.textContent = "Checking the latest published release…";
+function hideUpdateToast() {
+  if (updateToastTimer) window.clearTimeout(updateToastTimer);
+  updateToastTimer = null;
+  if (elements.updateToast) elements.updateToast.hidden = true;
+}
+
+function showUpdateToast(manifest, downloadUrl) {
+  if (!elements.updateToast) return;
+  elements.updateToastTitle.textContent = `STB PLAY v${manifest.version} is available`;
+  elements.updateToastText.textContent = manifest.notes || "A newer version is ready to download.";
+  elements.updateToastDownload.hidden = !downloadUrl;
+  elements.updateToast.hidden = false;
+  if (updateToastTimer) window.clearTimeout(updateToastTimer);
+  updateToastTimer = window.setTimeout(hideUpdateToast, 15000);
+}
+
+function startUpdateDownload(downloadUrl = state.latestUpdateUrl) {
+  if (!downloadUrl) return;
+  /* The manifest points to the .exe asset itself, so the browser/Electron
+     download handler starts the installer download without opening Releases. */
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = "";
+  link.rel = "noreferrer";
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+async function checkForUpdates({ silent = false } = {}) {
+  if (!elements.updateStatus && !elements.updateToast) return;
+  if (elements.checkUpdatesButton) {
+    elements.checkUpdatesButton.disabled = true;
+    elements.checkUpdatesButton.textContent = "Checking…";
+  }
+  if (!silent && elements.updateStatus) elements.updateStatus.textContent = "Checking the latest published release…";
   try {
     const response = await fetch(`${UPDATE_MANIFEST_URL}?ts=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) throw new Error("Update service unavailable.");
     const manifest = await response.json();
     const latest = String(manifest.version || APP_VERSION);
+    const downloadUrl = String(manifest.downloadUrl || "").trim();
     if (compareVersions(latest, APP_VERSION) > 0) {
-      elements.updateStatus.textContent = `Version ${latest} is available${manifest.notes ? ` · ${manifest.notes}` : ""}.`;
-      if (manifest.downloadUrl) {
-        const link = document.createElement("a"); link.href = manifest.downloadUrl; link.target = "_blank"; link.rel = "noreferrer"; link.textContent = " Download";
-        elements.updateStatus.append(link);
-      }
-    } else elements.updateStatus.textContent = `You are up to date · STB PLAY v${APP_VERSION}.`;
-  } catch { elements.updateStatus.textContent = `Could not check right now · current version v${APP_VERSION}.`; }
-  finally { elements.checkUpdatesButton.disabled = false; elements.checkUpdatesButton.textContent = "Check for updates"; }
+      state.latestUpdateUrl = downloadUrl;
+      if (elements.downloadUpdateButton) elements.downloadUpdateButton.hidden = !downloadUrl;
+      if (elements.updateStatus && !silent) elements.updateStatus.textContent = `Version ${latest} is available${manifest.notes ? ` · ${manifest.notes}` : ""}.`;
+      showUpdateToast({ ...manifest, version: latest }, downloadUrl);
+    } else {
+      state.latestUpdateUrl = "";
+      if (elements.downloadUpdateButton) elements.downloadUpdateButton.hidden = true;
+      if (elements.updateStatus && !silent) elements.updateStatus.textContent = `You are up to date · STB PLAY v${APP_VERSION}.`;
+    }
+  } catch {
+    if (!silent && elements.updateStatus) elements.updateStatus.textContent = `Could not check right now · current version v${APP_VERSION}.`;
+  } finally {
+    if (elements.checkUpdatesButton) {
+      elements.checkUpdatesButton.disabled = false;
+      elements.checkUpdatesButton.textContent = "Check for updates";
+    }
+  }
 }
 
-elements.checkUpdatesButton?.addEventListener("click", checkForUpdates);
+elements.checkUpdatesButton?.addEventListener("click", () => checkForUpdates());
+elements.downloadUpdateButton?.addEventListener("click", () => startUpdateDownload());
+elements.updateToastDownload?.addEventListener("click", () => startUpdateDownload());
+elements.dismissUpdateToast?.addEventListener("click", hideUpdateToast);
 
 function showFirstStartWarningIfNeeded() {
   if (localStorage.getItem("stbPlayFirstStartAcknowledged") === "1") return;
@@ -4300,12 +4358,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.10.json";
+  link.download = "netplus-diagnostics-v1.8.11.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.8.10.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.8.11.json file here.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
@@ -4361,7 +4419,8 @@ elements.setupForm.addEventListener("submit", async (event) => {
     state.parentalUnlocked = false;
     elements.parentalPin.value = "";
 
-    await loadCatalog();
+    /* Keep the setup screen covered until the new portal is fully loaded. */
+    await refreshPortalWithProgress(portalNickname || "Portal");
   } catch (error) {
     elements.setupError.textContent = error.message;
     elements.setupError.hidden = false;
@@ -4475,6 +4534,9 @@ async function boot() {
   applyPreferences();
   renderCastCapabilities();
   showFirstStartWarningIfNeeded();
+  /* Check quietly on every launch; the toast is shown only when a newer
+     published installer is actually available. */
+  window.setTimeout(() => { void checkForUpdates({ silent: true }); }, 1800);
 
   elements.mac.value =
     formatMacValue(localStorage.getItem("netplusMac") || elements.mac.value || "");
@@ -4490,9 +4552,19 @@ async function boot() {
       state.recoveryConfigured = Boolean(result.recoveryConfigured);
       if (elements.currentParentalPin) elements.currentParentalPin.hidden = !state.parentalConfigured;
       if (elements.generateRecoveryCodeButton) elements.generateRecoveryCodeButton.disabled = !state.parentalConfigured;
-      await loadPortals();
-      await refreshIfDue();
-      await loadCatalog();
+      /* Show feedback before even the saved-portal lookup starts. This keeps
+         a reopened app from looking frozen on the setup or Live TV screen. */
+      showPortalLoading("Saved portal");
+      try {
+        setPortalLoadingProgress(5, "Preparing", "Loading saved portal…");
+        await loadPortals();
+        const activePortal = state.portals.find((portal) => portal.id === state.activePortalId);
+        const loaded = await refreshPortalWithProgress(activePortal?.nickname || "Saved portal", { alreadyVisible: true });
+        if (!loaded) return;
+      } catch (error) {
+        failPortalLoading(error);
+        return;
+      }
       /* The local catalogue is loaded on demand from Settings or Search so
          a 127k-title index cannot slow normal Live/VOD browsing. */
     } else {

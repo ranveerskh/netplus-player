@@ -1,9 +1,9 @@
-STB PLAY — v1.8.10 PUBLIC RELEASE
+STB PLAY — v1.8.11 PUBLIC RELEASE
 
 This is a complete replacement source package. After installation,
-Settings must show “STB PLAY v1.8.10”.
+Settings must show “STB PLAY v1.8.11”.
 
-WHAT CHANGED IN v1.8.10
+WHAT CHANGED IN v1.8.11
 
 0.1. The bundled HLS.js runtime and logo assets are included in the GitHub
      build. Earlier v1.8.9 packaging omitted these runtime files, which made
@@ -69,21 +69,21 @@ BUILD THE WINDOWS EXE
 3. Upload and replace ALL extracted files and folders, then commit the changes.
 4. The “Build Windows installer” workflow builds the installer and publishes
    a GitHub Release automatically after the commit reaches main.
-5. The release asset is named Netplus-IPTV-Player-Setup-1.8.10.exe. The
+5. The release asset is named Netplus-IPTV-Player-Setup-1.8.11.exe. The
    installer bootstrapper can download it from Releases/latest.
-6. Close the old app and run the STB-PLAY installer for v1.8.10. It upgrades
+6. Close the old app and run the STB-PLAY installer for v1.8.11. It upgrades
    the previous version; normally you do not need to uninstall first.
 
 TEST AFTER INSTALLATION
 
-1. Open Settings and confirm v1.8.10 Premium Home + Personalised Recommendations UI is shown.
+1. Open Settings and confirm v1.8.11 Premium Home + Personalised Recommendations UI is shown.
 2. Open Settings > Playback and confirm Auto, Internal player, and VLC are present.
 3. Play a Live TV channel continuously for at least 90 seconds.
 4. Open multiple movies and confirm Quality -> Play.
 5. Open a title from a SHOWS category and confirm Seasons -> Episodes ->
    Quality -> Play.
 6. If any problem remains, choose Settings -> Start fresh test, reproduce one
-   Live TV and one VOD attempt, then send netplus-diagnostics-v1.8.10.json.
+   Live TV and one VOD attempt, then send netplus-diagnostics-v1.8.11.json.
 
 The diagnostic report excludes the MAC address, parental PIN, portal token,
 cookies, and full stream links.
