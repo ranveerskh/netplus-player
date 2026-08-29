@@ -1,5 +1,5 @@
 {
-  "version": "1.8.14",
-  "notes": "Strict title search, restored v1.8.12 live parental locking, live catalogue compatibility, playback recovery, diagnostics, and anonymous analytics",
-  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.14/Netplus-IPTV-Player-Setup-1.8.14.exe"
+  "version": "1.8.15",
+  "notes": "Restored v1.8.12 live adult compatibility, VOD online subtitles, playback recovery, diagnostics, anonymous analytics, and a safer updater",
+  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.15/Netplus-IPTV-Player-Setup-1.8.15.exe"
 }
