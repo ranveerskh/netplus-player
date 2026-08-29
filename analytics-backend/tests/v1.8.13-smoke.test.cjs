@@ -78,6 +78,22 @@ function startMockPortal(port) {
       return jsonResponse(res, 200, { js: { token: "mock-session-token" } });
     }
     if (action === "get_profile") return jsonResponse(res, 200, { js: { tariff_plan: "Smoke test" } });
+    if (action === "get_vod_info") {
+      return jsonResponse(res, 200, {
+        js: {
+          subtitles: [{
+            language: "eng",
+            label: "English",
+            url: `http://127.0.0.1:${port}/subtitles/movie.srt`,
+          }],
+        },
+      });
+    }
+    if (requestUrl.pathname === "/subtitles/movie.srt") {
+      const body = "1\n00:00:01,000 --> 00:00:03,000\nHello from the provider\n";
+      res.writeHead(200, { "content-type": "application/x-subrip", "content-length": Buffer.byteLength(body) });
+      return res.end(body);
+    }
     if (action === "get_genres") {
       return jsonResponse(res, 200, { js: [
         { id: "1", name: "General", locked: "0", adult: "0" },
@@ -109,16 +125,16 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-test("v1.8.14 release markers and recovery/search boundaries are present", () => {
+test("v1.8.15 release markers and recovery/search boundaries are present", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const updateJson = JSON.parse(fs.readFileSync(path.join(ROOT, "update.json"), "utf8"));
   const app = fs.readFileSync(path.join(ROOT, "local-player", "app.js"), "utf8");
   const server = fs.readFileSync(path.join(ROOT, "local-player", "server.cjs"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "local-player", "index.html"), "utf8");
 
-  assert.equal(packageJson.version, "1.8.14");
-  assert.equal(updateJson.version, "1.8.14");
-  assert.match(updateJson.downloadUrl, /v1\.8\.14\/Netplus-IPTV-Player-Setup-1\.8\.14\.exe$/);
+  assert.equal(packageJson.version, "1.8.15");
+  assert.equal(updateJson.version, "1.8.15");
+  assert.match(updateJson.downloadUrl, /v1\.8\.15\/Netplus-IPTV-Player-Setup-1\.8\.15\.exe$/);
   assert.match(app, /function strictTitleSearchMatch/);
   assert.match(app, /!query \|\| strictTitleSearchMatch\(\{ title: channel\.name \}, query\)/);
   assert.doesNotMatch(server, /ADULT_LIVE_CATEGORY_ID/);
@@ -129,6 +145,10 @@ test("v1.8.14 release markers and recovery/search boundaries are present", () =>
   assert.match(app, /error\.status === 404/);
   assert.match(server, /\[401, 404\]/);
   assert.match(server, /Channel is no longer available\./);
+  assert.match(server, /categoryLockedById/);
+  assert.match(server, /vod\/subtitles/);
+  assert.match(app, /isTrustedUpdateUrl/);
+  assert.match(app, /vodSubtitleSelect/);
   assert.match(server, /enabled: false/);
   assert.match(html, /attach the JSON file to your support message/i);
   assert.match(app, /\/api\/analytics\/event/);
@@ -140,7 +160,7 @@ test("analytics contract keeps payload anonymous and allow-listed", () => {
   const payload = normalizeAnalyticsPayload({
     installationId,
     name: "playback_failed",
-    version: "1.8.14",
+    version: "1.8.15",
     platform: "linux",
     meta: {
       player: "internal",
@@ -166,7 +186,7 @@ test("analytics contract keeps payload anonymous and allow-listed", () => {
 });
 
 test("live catalogue preserves the v1.8.12 PIN category and recovers 401/stale playback", async (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-live-v1.8.14-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-live-v1.8.15-"));
   const portalPort = await freePort();
   const playerPort = await freePort();
   const portal = startMockPortal(portalPort);
@@ -208,6 +228,8 @@ test("live catalogue preserves the v1.8.12 PIN category and recovers 401/stale p
     { title: "Adult", locked: true }
   );
   assert.equal(catalog.channels.find((channel) => channel.id === "200")?.genreId, "2");
+  assert.equal(catalog.channels.find((channel) => channel.id === "200")?.adultLocked, true);
+  assert.equal(catalog.channels.find((channel) => channel.id === "100")?.adultLocked, false);
   assert.equal(catalog.channels.length, 2);
   assert.equal(portal.state.handshakeCount, 2, "the initial temporary authorization should retry");
 
@@ -228,10 +250,28 @@ test("live catalogue preserves the v1.8.12 PIN category and recovers 401/stale p
   });
   assert.equal(stalePlayback.status, 404);
   assert.equal((await stalePlayback.json()).error, "Channel is no longer available.");
+
+  const subtitleResponse = await fetch(`http://127.0.0.1:${playerPort}/api/vod/subtitles`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      categoryId: "10",
+      itemId: "501",
+      language: "en",
+      clientItem: { id: "501", categoryId: "10", title: "Demo Movie", year: "2025" },
+    }),
+  });
+  assert.equal(subtitleResponse.status, 200);
+  const subtitlePayload = await subtitleResponse.json();
+  assert.equal(subtitlePayload.tracks.length, 1);
+  assert.equal(subtitlePayload.tracks[0].language, "en");
+  const subtitleFile = await fetch(`http://127.0.0.1:${playerPort}${subtitlePayload.tracks[0].url}`);
+  assert.equal(subtitleFile.status, 200);
+  assert.match(await subtitleFile.text(), /^WEBVTT[\s\S]*00:00:01\.000 --> 00:00:03\.000/);
 });
 
 test("local player queues and delivers an analytics event to the backend", async (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-v1.8.14-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-v1.8.15-"));
   const analyticsPort = await freePort();
   const playerPort = await freePort();
   const analyticsDataPath = path.join(tempRoot, "analytics-data.json");
@@ -262,7 +302,7 @@ test("local player queues and delivers an analytics event to the backend", async
     body: JSON.stringify({
       installationId,
       name: "app_opened",
-      version: "1.8.14",
+      version: "1.8.15",
       platform: "linux",
       meta: { screen: "app", portalUrl: "https://should-not-be-sent.example" },
     }),
@@ -275,7 +315,7 @@ test("local player queues and delivers an analytics event to the backend", async
     body: JSON.stringify({
       installationId,
       name: "crash_reported",
-      version: "1.8.14",
+      version: "1.8.15",
       platform: "linux",
       meta: { screen: "app", errorType: "unhandled-rejection", rawError: "must-not-be-stored" },
     }),
@@ -291,7 +331,7 @@ test("local player queues and delivers an analytics event to the backend", async
 
   assert.equal(store?.events?.length, 2, `analytics delivery failed: ${player.testOutput()}`);
   assert.deepEqual(store.events.map((event) => event.name), ["app_opened", "crash_reported"]);
-  assert.equal(store.events[0].version, "1.8.14");
+  assert.equal(store.events[0].version, "1.8.15");
   assert.equal(store.events[0].meta.screen, "app");
   assert.equal(store.events[1].meta.errorType, "unhandled-rejection");
   assert.equal(store.events[0].uid.length, 64);
@@ -301,7 +341,7 @@ test("local player queues and delivers an analytics event to the backend", async
   const invalid = await fetch(`http://127.0.0.1:${playerPort}/api/analytics/event`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ installationId: "bad", name: "app_opened", version: "1.8.14", platform: "linux" }),
+    body: JSON.stringify({ installationId: "bad", name: "app_opened", version: "1.8.15", platform: "linux" }),
   });
   assert.equal(invalid.status, 400);
 });
