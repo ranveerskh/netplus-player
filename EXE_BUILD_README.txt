@@ -1,11 +1,11 @@
-STB PLAY — v1.8.14 RELEASE PACKAGE
+STB PLAY — v1.8.15 RELEASE PACKAGE
 
 This package contains the Windows desktop player source, the anonymous
 analytics endpoint, and a separate private admin dashboard. Deploy the
 analytics endpoint before distributing the desktop build. Until it is live,
 the player keeps a small local outbox and retries events later.
 
-WHAT CHANGED IN v1.8.14
+WHAT CHANGED IN v1.8.15
 
 1. Strict search
    Search results are matched against title, old title, and alternate/original
@@ -41,6 +41,13 @@ WHAT CHANGED IN v1.8.14
    ID plus version, platform, event name, and safe metadata. The dashboard is
    a separate Firebase-Auth-protected webpage, not part of the app UI.
 
+6. VOD online subtitles
+   Provider subtitle files can be loaded online for the current movie or
+   episode. English, Punjabi, and Hindi preferences are supported, and the
+   setting remains Off by default. A deployment may configure
+   STB_PLAY_SUBTITLE_API_URL and STB_PLAY_SUBTITLE_API_KEY on the local player
+   server for an approved subtitle service; the key never reaches the app UI.
+
 BACKEND FIRST — DEPLOY BEFORE THE NEXT BUILD
 
 1. Install Firebase CLI and sign in with the private project owner account.
@@ -68,7 +75,7 @@ BUILD THE WINDOWS INSTALLER
 2. Replace the files in the netplus-player repository and commit to main.
 3. Run the “Build Windows installer” GitHub Actions workflow.
 4. The expected release asset is:
-   Netplus-IPTV-Player-Setup-1.8.14.exe
+   Netplus-IPTV-Player-Setup-1.8.15.exe
 5. The installer upgrades the previous version; an uninstall is normally not
    required. The installer is unsigned unless a NetPlus code-signing
    certificate is configured.
@@ -89,8 +96,8 @@ player. Keep the command window open while testing.
 
 INSTALL / UPDATE / PLAYBACK CHECKLIST
 
-1. Install the v1.8.14 installer and confirm Settings shows v1.8.14.
-2. Launch the old build, use its update check, and confirm the v1.8.14
+1. Install the v1.8.15 installer and confirm Settings shows v1.8.15.
+2. Launch the old build, use its update check, and confirm the v1.8.15
    installer link is accepted and the new build opens.
 3. Add a portal and confirm Live TV loads.
 4. Search a title by exact title/alternate title words; verify a description,
@@ -105,4 +112,7 @@ INSTALL / UPDATE / PLAYBACK CHECKLIST
    Settings, and that diagnostics are still off by default.
 8. If support asks for diagnostics: Settings → Start fresh test → reproduce
    the issue → Download diagnostic report → attach
-   netplus-diagnostics-v1.8.14.json to the support message.
+   netplus-diagnostics-v1.8.15.json to the support message.
+9. For a title with provider subtitle files, set Settings → Subtitle
+   preference to English, Punjabi, Hindi, or Auto and confirm the player
+   subtitle selector loads the available online track.
