@@ -2,7 +2,7 @@
 <!--
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.14 strict search, restored live parental locking, recovery and analytics
+ VERSION: 1.8.15 strict search, restored live parental locking, subtitles, recovery and analytics
  File: index.html
 =========================================================
 -->
@@ -10,12 +10,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="app-version" content="1.8.14-strict-search-live-catalogue-recovery-analytics">
+  <meta name="app-version" content="1.8.15-strict-search-live-catalogue-recovery-subtitles-analytics">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>STB PLAY · 1.8.14</title>
-  <link rel="stylesheet" href="styles.css?v=1.8.14-strict-search-live-catalogue-recovery-analytics">
+  <title>STB PLAY · 1.8.15</title>
+  <link rel="stylesheet" href="styles.css?v=1.8.15-strict-search-live-catalogue-recovery-subtitles-analytics">
   <script src="hls.min.js"></script>
 </head>
 
@@ -64,7 +64,7 @@
     <small class="field-help">The same MAC is reused for additional portals. Change it only if your provider assigned a different one.</small>
 
     <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
-    <p class="setup-version">STB PLAY v1.8.14 · Premium IPTV player</p>
+    <p class="setup-version">STB PLAY v1.8.15 · Premium IPTV player</p>
   </form>
 </main>
 
@@ -190,6 +190,9 @@
                 <span id="vodTimeDisplay" class="time-display">0:00 / 0:00</span>
               </div>
               <div class="controls-right">
+                <select id="vodSubtitleSelect" class="vod-subtitle-select" aria-label="Subtitles" hidden>
+                  <option value="">Subtitles off</option>
+                </select>
                 <button id="closeVodPlayerButton" class="control-btn vod-close-player" type="button" aria-label="Exit player">Back</button>
                 <button id="vodFullscreenBtn" class="control-btn" type="button" aria-label="Toggle video fullscreen">Full</button>
               </div>
@@ -371,8 +374,8 @@
     <section class="settings-section settings-audio">
       <h3>Audio &amp; Subtitles</h3>
       <label for="subtitleSelect">Subtitle preference</label>
-      <select id="subtitleSelect"><option value="off">Off</option><option value="auto">Auto</option><option value="en">English</option></select>
-      <p>Available subtitle and audio tracks depend on the provider stream.</p>
+      <select id="subtitleSelect"><option value="off">Off</option><option value="auto">Auto</option><option value="en">English</option><option value="pa">Punjabi</option><option value="hi">Hindi</option></select>
+      <p>Online subtitles are off by default. When the provider supplies English, Punjabi, or Hindi subtitle files, choose a preference and the player will load them for the current VOD title.</p>
     </section>
     <section class="settings-section settings-content">
       <h3>Content</h3>
@@ -445,7 +448,7 @@
       <button id="resetPortalButton" class="danger-btn" type="button">Manage portals</button>
     </section>
     </div>
-    <p class="settings-version">STB PLAY v1.8.14 · Premium Home + personalised recommendations</p>
+    <p class="settings-version">STB PLAY v1.8.15 · Premium Home + personalised recommendations</p>
   </div>
 </div>
 
@@ -500,6 +503,6 @@
   <button id="updateToastDownload" class="primary-button" type="button">Download &amp; install</button>
 </aside>
 
-<script src="app.js?v=1.8.14-strict-search-live-catalogue-recovery-analytics"></script>
+<script src="app.js?v=1.8.15-strict-search-live-catalogue-recovery-subtitles-analytics"></script>
 </body>
 </html>
