@@ -1,4 +1,4 @@
-STB PLAY — v1.8.14 PLAYER
+STB PLAY — v1.8.15 PLAYER
 
 1. Install the official Node.js 24 LTS Windows x64 version.
 2. Extract this package outside the ZIP.
@@ -7,7 +7,7 @@ STB PLAY — v1.8.14 PLAYER
    parental PIN on first launch.
 5. Keep the command window open while watching.
 
-v1.8.14 behavior
+v1.8.15 behavior
 
 - Movies & Series search checks title, old title, and alternate/original title
   fields only. It does not match paths, descriptions, URLs, or provider
@@ -28,7 +28,10 @@ v1.8.14 behavior
   backend outage.
 - Diagnostics are disabled by default. Start a fresh diagnostic test only
   when support asks. Reproduce the issue, download the report, and attach
-  netplus-diagnostics-v1.8.14.json to the support message.
+  netplus-diagnostics-v1.8.15.json to the support message.
+- VOD online subtitles are off by default. If the provider exposes subtitle
+  files, the player can load English, Punjabi, Hindi, or the first available
+  track without exposing provider credentials to the renderer.
 - Portal profiles, MAC addresses, parental PIN hashes, analytics outbox, and
   diagnostics remain in the local user-data/config location.
 - This local server listens only on 127.0.0.1.
