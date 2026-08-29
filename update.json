@@ -1,5 +1,5 @@
 {
-  "version": "1.8.9",
-  "notes": "Default player selection, VLC codec fallback, and exact matching desktop icon",
+  "version": "1.8.10",
+  "notes": "Restored bundled HLS runtime, cleaned Settings layout, and added safer playback fallback",
   "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/latest"
 }

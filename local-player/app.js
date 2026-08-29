@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.9 desktop icon cache-busting release
+ VERSION: 1.8.10 HLS runtime and Settings repair release
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.9";
+const APP_VERSION = "1.8.10";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const UPDATE_MANIFEST_URL = "https://raw.githubusercontent.com/ranveerskh/netplus-player/main/update.json";
 
@@ -42,6 +42,7 @@ const state = {
   portals: [],
   activePortalId: null,
   subscription: null,
+  recoveryConfigured: false,
 
   vod: {
     categories: [],
@@ -261,6 +262,17 @@ const elements = {
   newParentalPin: $("#newParentalPin"),
   currentParentalPin: $("#currentParentalPin"),
   updatePinButton: $("#updatePinButton"),
+  generateRecoveryCodeButton: $("#generateRecoveryCodeButton"),
+  forgotParentalPinButton: $("#forgotParentalPinButton"),
+  recoveryCodePanel: $("#recoveryCodePanel"),
+  recoveryCodeValue: $("#recoveryCodeValue"),
+  forgotPinModal: $("#forgotPinModal"),
+  closeForgotPinModal: $("#closeForgotPinModal"),
+  forgotPinForm: $("#forgotPinForm"),
+  recoveryCodeInput: $("#recoveryCodeInput"),
+  recoveryNewPin: $("#recoveryNewPin"),
+  recoveryPinError: $("#recoveryPinError"),
+  recoverPinButton: $("#recoverPinButton"),
   pinNotice: $("#pinNotice"),
   resetDiagnosticButton: $("#resetDiagnosticButton"),
   downloadDiagnosticButton: $("#downloadDiagnosticButton"),
@@ -944,7 +956,7 @@ if (elements.mac) {
   });
 }
 
-for (const input of [elements.parentalPin, elements.unlockPin, elements.currentParentalPin, elements.newParentalPin]) {
+for (const input of [elements.parentalPin, elements.unlockPin, elements.currentParentalPin, elements.newParentalPin, elements.recoveryNewPin]) {
   if (!input) continue;
   input.removeAttribute("readonly");
   input.removeAttribute("disabled");
@@ -1071,10 +1083,14 @@ async function deletePortal(id) {
   catch (error) { setSettingsNotice(error.message, false); }
 }
 
-for (const input of [elements.mac, elements.parentalPin, elements.unlockPin, elements.currentParentalPin, elements.newParentalPin]) {
+for (const input of [elements.mac, elements.parentalPin, elements.unlockPin, elements.currentParentalPin, elements.newParentalPin, elements.recoveryNewPin]) {
   input?.addEventListener("pointerdown", (event) => event.stopPropagation());
   input?.addEventListener("click", () => input.focus());
 }
+
+elements.recoveryCodeInput?.addEventListener("input", () => {
+  elements.recoveryCodeInput.value = elements.recoveryCodeInput.value.replace(/\D/g, "").slice(0, 8);
+});
 
 /* =====================================================
    PARENTAL UNLOCK
@@ -1746,7 +1762,11 @@ async function playSelectedLive(isRecovery = false) {
       return;
     }
 
-    throw new Error("This device does not support HLS playback.");
+    if (getDefaultPlayer() === "auto" && openPreferredExternalPlayer("live", payload.stream, selected.name)) {
+      return;
+    }
+
+    throw new Error("Built-in HLS playback is unavailable. Select VLC in Settings or install VLC.");
   } catch (error) {
     if (token === state.liveRetryToken) livePlaybackFailed(error.message);
   }
@@ -2668,6 +2688,11 @@ async function playVod(item, resumeFrom = 0, qualityId = "", isRenewal = false) 
 
     if (payload.hls === true && window.Hls?.isSupported()) {
       attachVodHls(payload.stream, item, resumeFrom, token, retry);
+      return;
+    }
+
+    if (payload.hls === true && getDefaultPlayer() === "auto" && openPreferredExternalPlayer("vod", payload.stream, item.title)) {
+      elements.vodVideoLoading.hidden = true;
       return;
     }
 
@@ -4030,6 +4055,7 @@ function renderCastCapabilities() {
 elements.settingsButton.addEventListener("click", () => {
   elements.settingsModal.hidden = false;
   if (elements.currentParentalPin) elements.currentParentalPin.hidden = !state.parentalConfigured;
+  if (elements.generateRecoveryCodeButton) elements.generateRecoveryCodeButton.disabled = !state.parentalConfigured;
   renderLocalCatalogueStatus();
   loadPortals().catch((error) => setSettingsNotice(error.message, false));
 });
@@ -4072,6 +4098,74 @@ elements.closeSettingsButton.addEventListener("click", () => {
 
 elements.settingsModal.addEventListener("click", (event) => {
   if (event.target === elements.settingsModal) elements.settingsModal.hidden = true;
+});
+
+function showRecoveryCode(code) {
+  if (!code || !elements.recoveryCodePanel || !elements.recoveryCodeValue) return;
+  elements.recoveryCodeValue.textContent = String(code);
+  elements.recoveryCodePanel.hidden = false;
+}
+
+function closeForgotPinModal() {
+  elements.forgotPinModal.hidden = true;
+  elements.recoveryCodeInput.value = "";
+  elements.recoveryNewPin.value = "";
+  elements.recoveryPinError.hidden = true;
+}
+
+elements.generateRecoveryCodeButton?.addEventListener("click", async () => {
+  const currentPin = elements.currentParentalPin.value.trim();
+  if (!/^\d{4}$/.test(currentPin)) {
+    setSettingsNotice("Enter your current 4-digit PIN first.", false);
+    return;
+  }
+  elements.generateRecoveryCodeButton.disabled = true;
+  elements.generateRecoveryCodeButton.textContent = "Generating…";
+  try {
+    const result = await request("/api/parental/recovery", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ currentPin }) });
+    state.recoveryConfigured = true;
+    showRecoveryCode(result.recoveryCode);
+    setSettingsNotice("New recovery code generated. Save it somewhere safe.");
+  } catch (error) {
+    setSettingsNotice(error.message || "Could not generate a recovery code.", false);
+  } finally {
+    elements.generateRecoveryCodeButton.disabled = !state.parentalConfigured;
+    elements.generateRecoveryCodeButton.textContent = "Generate recovery code";
+  }
+});
+
+elements.forgotParentalPinButton?.addEventListener("click", () => {
+  elements.recoveryPinError.hidden = true;
+  elements.forgotPinModal.hidden = false;
+  setTimeout(() => elements.recoveryCodeInput.focus(), 50);
+});
+elements.closeForgotPinModal?.addEventListener("click", closeForgotPinModal);
+elements.forgotPinModal?.addEventListener("click", (event) => { if (event.target === elements.forgotPinModal) closeForgotPinModal(); });
+elements.forgotPinForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const recoveryCode = elements.recoveryCodeInput.value.trim();
+  const newPin = elements.recoveryNewPin.value.trim();
+  if (!/^\d{8}$/.test(recoveryCode) || !/^\d{4}$/.test(newPin)) {
+    elements.recoveryPinError.textContent = "Enter the 8-digit recovery code and a new 4-digit PIN.";
+    elements.recoveryPinError.hidden = false;
+    return;
+  }
+  elements.recoverPinButton.disabled = true;
+  elements.recoverPinButton.textContent = "Resetting…";
+  try {
+    const result = await request("/api/parental/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ recoveryCode, newPin }) });
+    state.parentalConfigured = true;
+    state.recoveryConfigured = true;
+    closeForgotPinModal();
+    showRecoveryCode(result.recoveryCode);
+    setSettingsNotice("PIN reset successfully. Save the new recovery code.");
+  } catch (error) {
+    elements.recoveryPinError.textContent = error.message || "PIN recovery failed.";
+    elements.recoveryPinError.hidden = false;
+  } finally {
+    elements.recoverPinButton.disabled = false;
+    elements.recoverPinButton.textContent = "Reset PIN";
+  }
 });
 
 elements.themeSelect.addEventListener("change", (event) => {
@@ -4159,7 +4253,7 @@ elements.updatePinButton.addEventListener("click", async () => {
   elements.updatePinButton.textContent = "Updating...";
 
   try {
-    await request(state.parentalConfigured ? "/api/parental/update" : "/api/parental/pin", {
+    const result = await request(state.parentalConfigured ? "/api/parental/update" : "/api/parental/pin", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: state.parentalConfigured ? JSON.stringify({ currentPin, newPin }) : JSON.stringify({ pin: newPin }),
@@ -4167,11 +4261,13 @@ elements.updatePinButton.addEventListener("click", async () => {
 
     state.parentalUnlocked = false;
     state.parentalConfigured = true;
-    elements.pinNotice.textContent = "PIN updated successfully.";
+    state.recoveryConfigured = true;
+    elements.pinNotice.textContent = result.recoveryCode ? "PIN updated. Save the new recovery code below." : "PIN updated successfully.";
     elements.pinNotice.style.color = "#35dbc5";
     elements.pinNotice.hidden = false;
     elements.newParentalPin.value = "";
     elements.currentParentalPin.value = "";
+    showRecoveryCode(result.recoveryCode);
   } catch (error) {
     elements.pinNotice.textContent = error.message || "Failed to update PIN.";
     elements.pinNotice.style.color = "#ff9292";
@@ -4204,12 +4300,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.9.json";
+  link.download = "netplus-diagnostics-v1.8.10.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.8.9.json file here.";
+  elements.diagnosticNotice.textContent = "Report download started. Send the netplus-diagnostics-v1.8.10.json file here.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
@@ -4285,6 +4381,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "Escape") {
     if (!elements.pinModal.hidden) return closePinModal(true);
+    if (!elements.forgotPinModal.hidden) return closeForgotPinModal();
     if (!elements.vodModal.hidden) return closeVodModal();
     if (!elements.vodPlayerSection.hidden) return elements.closeVodPlayerButton.click();
     if (!elements.settingsModal.hidden) {
@@ -4390,7 +4487,9 @@ async function boot() {
 
     if (result.configured) {
       state.parentalConfigured = Boolean(result.parentalConfigured);
+      state.recoveryConfigured = Boolean(result.recoveryConfigured);
       if (elements.currentParentalPin) elements.currentParentalPin.hidden = !state.parentalConfigured;
+      if (elements.generateRecoveryCodeButton) elements.generateRecoveryCodeButton.disabled = !state.parentalConfigured;
       await loadPortals();
       await refreshIfDue();
       await loadCatalog();

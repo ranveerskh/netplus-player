@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.9 desktop icon cache-busting release
+ VERSION: 1.8.10 HLS runtime and Settings repair release
  File: server.cjs
 =========================================================
 */
@@ -21,10 +21,10 @@ const HOST = "127.0.0.1";
 const PORT = 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.9";
+const APP_VERSION = "1.8.10";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.8.9.json"
+  "netplus-diagnostics-v1.8.10.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 
@@ -188,9 +188,8 @@ function invalidateContentCaches() {
 
 const ADULT_TERMS = /(adult|xxx|18\s*(?:\+|plus)|porn|erotic|sex)/i;
 const ADULT_RATING = /(18\s*(?:\+|plus)|\bA\b|NC[- ]?17|XXX|\bX{1,3}\b)/i;
-/* Recovery PIN requested for this private/local player. It is never written
-   to diagnostics or returned by any API response. */
-const MASTER_PARENTAL_PIN = "8445";
+/* Recovery codes are generated per installation and only their hashes are
+   written to the local config file. No shared support/master PIN is bundled. */
 
 /* =====================================================
    SAFE DIAGNOSTICS
@@ -399,6 +398,20 @@ function pinHash(pin) {
   return scryptSync(pin, "netplus-parental-v1", 32).toString("hex");
 }
 
+function recoveryCodeHash(code) {
+  return scryptSync(String(code || "").trim(), "netplus-recovery-v1", 32).toString("hex");
+}
+
+function createRecoveryCode() {
+  return String(randomBytes(4).readUInt32BE(0) % 100000000).padStart(8, "0");
+}
+
+function matchesHash(value, savedHash, hashFunction) {
+  const actual = Buffer.from(String(savedHash || ""), "hex");
+  const expected = Buffer.from(hashFunction(String(value || "").trim()), "hex");
+  return actual.length > 0 && actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
 function isAdult(title) {
   return ADULT_TERMS.test(String(title || ""));
 }
@@ -419,8 +432,15 @@ function saveConfig(serviceId, macInput, parentalPin) {
   const existing = readStoredConfig();
   const pin = String(parentalPin || "").trim();
 
+  let recoveryCode = "";
   const parentalPinHash =
     /^\d{4}$/.test(pin) ? pinHash(pin) : existing.parentalPinHash;
+  let recoveryCodeHashValue = existing.recoveryCodeHash;
+
+  if (/^\d{4}$/.test(pin) && !recoveryCodeHashValue) {
+    recoveryCode = createRecoveryCode();
+    recoveryCodeHashValue = recoveryCodeHash(recoveryCode);
+  }
 
   if (!parentalPinHash) {
     throw new PlayerError(
@@ -431,13 +451,14 @@ function saveConfig(serviceId, macInput, parentalPin) {
 
   fs.writeFileSync(
     CONFIG_PATH,
-    `${JSON.stringify({ serviceId, mac, parentalPinHash }, null, 2)}\n`,
+    `${JSON.stringify({ serviceId, mac, parentalPinHash, recoveryCodeHash: recoveryCodeHashValue }, null, 2)}\n`,
     "utf8"
   );
 
   invalidateContentCaches();
   relayTargets.clear();
   relayTicketsByKey.clear();
+  return { recoveryCode };
 }
 
 function normalizePortalId(value) {
@@ -462,9 +483,15 @@ function savePortalProfile({ id, nickname, portalUrl, mac }, parentalPin = "") {
   if (index >= 0) portals[index] = portal; else portals.push(portal);
   const pin = String(parentalPin || "").trim();
   const parentalPinHash = /^\d{4}$/.test(pin) ? pinHash(pin) : stored.parentalPinHash;
-  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify({ portals, activePortalId: portal.id, parentalPinHash }, null, 2)}\n`, "utf8");
+  let recoveryCode = "";
+  let recoveryCodeHashValue = stored.recoveryCodeHash;
+  if (/^\d{4}$/.test(pin) && !recoveryCodeHashValue) {
+    recoveryCode = createRecoveryCode();
+    recoveryCodeHashValue = recoveryCodeHash(recoveryCode);
+  }
+  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify({ portals, activePortalId: portal.id, parentalPinHash, recoveryCodeHash: recoveryCodeHashValue }, null, 2)}\n`, "utf8");
   invalidateContentCaches(); relayTargets.clear(); relayTicketsByKey.clear();
-  return portal;
+  return { portal, recoveryCode };
 }
 
 function listPortalProfiles() {
@@ -497,22 +524,47 @@ function saveParentalPin(pin) {
   if (!/^\d{4}$/.test(cleanPin)) throw new PlayerError("PIN must be exactly 4 digits.", 400);
   const stored = readStoredConfig();
   if (stored.parentalPinHash) throw new PlayerError("Enter your current PIN before setting a new PIN.", 401);
-  writeParentalPinHash(stored, cleanPin);
+  return writeParentalPinHash(stored, cleanPin);
 }
 
 function writeParentalPinHash(stored, pin) {
-  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify({ ...stored, parentalPinHash: pinHash(String(pin).trim()) }, null, 2)}\n`, "utf8");
+  const recoveryCode = createRecoveryCode();
+  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify({ ...stored, parentalPinHash: pinHash(String(pin).trim()), recoveryCodeHash: recoveryCodeHash(recoveryCode) }, null, 2)}\n`, "utf8");
+  return recoveryCode;
 }
 
 function updateParentalPin(currentPin, newPin) {
   const stored = readStoredConfig();
-  const actual = Buffer.from(stored.parentalPinHash || "", "hex");
-  const expected = Buffer.from(pinHash(String(currentPin || "").trim()), "hex");
-  const valid = actual.length > 0 && actual.length === expected.length && timingSafeEqual(actual, expected);
-  if (!valid) throw new PlayerError("Current parental PIN is incorrect.", 401);
+  if (!matchesHash(currentPin, stored.parentalPinHash, pinHash)) throw new PlayerError("Current parental PIN is incorrect.", 401);
   const cleanPin = String(newPin || "").trim();
   if (!/^\d{4}$/.test(cleanPin)) throw new PlayerError("PIN must be exactly 4 digits.", 400);
-  writeParentalPinHash(stored, cleanPin);
+  if (stored.recoveryCodeHash) {
+    fs.writeFileSync(CONFIG_PATH, `${JSON.stringify({ ...stored, parentalPinHash: pinHash(cleanPin) }, null, 2)}\n`, "utf8");
+    return "";
+  }
+  return writeParentalPinHash(stored, cleanPin);
+}
+
+function regenerateRecoveryCode(currentPin) {
+  const stored = readStoredConfig();
+  if (!matchesHash(currentPin, stored.parentalPinHash, pinHash)) throw new PlayerError("Current parental PIN is incorrect.", 401);
+  const recoveryCode = createRecoveryCode();
+  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify({ ...stored, recoveryCodeHash: recoveryCodeHash(recoveryCode) }, null, 2)}\n`, "utf8");
+  return recoveryCode;
+}
+
+function resetParentalPinWithRecovery(code, newPin) {
+  const stored = readStoredConfig();
+  const cleanCode = String(code || "").trim();
+  const cleanPin = String(newPin || "").trim();
+  if (!/^\d{8}$/.test(cleanCode)) throw new PlayerError("Enter the 8-digit recovery code.", 400);
+  if (!/^\d{4}$/.test(cleanPin)) throw new PlayerError("PIN must be exactly 4 digits.", 400);
+  if (!stored.recoveryCodeHash || !matchesHash(cleanCode, stored.recoveryCodeHash, recoveryCodeHash)) {
+    throw new PlayerError("Recovery code is incorrect or has not been created yet.", 401);
+  }
+  const nextRecoveryCode = createRecoveryCode();
+  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify({ ...stored, parentalPinHash: pinHash(cleanPin), recoveryCodeHash: recoveryCodeHash(nextRecoveryCode) }, null, 2)}\n`, "utf8");
+  return nextRecoveryCode;
 }
 
 function extractSetCookiePairs(headers) {
@@ -3197,7 +3249,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.9.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.10.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -3645,6 +3697,7 @@ async function handle(req, res) {
     return json(res, 200, {
       configured,
       parentalConfigured,
+      recoveryConfigured: Boolean(readStoredConfig().recoveryCodeHash),
       serviceId,
       mac,
       services: Object.entries(SERVICES).map(([id, service]) => ({
@@ -3670,8 +3723,8 @@ async function handle(req, res) {
 
   if (req.method === "POST" && requestUrl.pathname === "/api/portals") {
     const body = await readJson(req);
-    const portal = savePortalProfile(body, body.parentalPin);
-    return json(res, 200, { ok: true, portal, ...listPortalProfiles() });
+    const result = savePortalProfile(body, body.parentalPin);
+    return json(res, 200, { ok: true, portal: result.portal, recoveryCode: result.recoveryCode, ...listPortalProfiles() });
   }
 
   if (req.method === "POST" && requestUrl.pathname === "/api/portals/activate") {
@@ -3682,14 +3735,24 @@ async function handle(req, res) {
 
   if (req.method === "POST" && requestUrl.pathname === "/api/parental/pin") {
     const body = await readJson(req);
-    saveParentalPin(body.pin);
-    return json(res, 200, { ok: true });
+    const recoveryCode = saveParentalPin(body.pin);
+    return json(res, 200, { ok: true, recoveryCode });
   }
 
   if (req.method === "POST" && requestUrl.pathname === "/api/parental/update") {
     const body = await readJson(req);
-    updateParentalPin(body.currentPin, body.newPin);
-    return json(res, 200, { ok: true });
+    const recoveryCode = updateParentalPin(body.currentPin, body.newPin);
+    return json(res, 200, { ok: true, recoveryCode });
+  }
+
+  if (req.method === "POST" && requestUrl.pathname === "/api/parental/recovery") {
+    const body = await readJson(req);
+    return json(res, 200, { ok: true, recoveryCode: regenerateRecoveryCode(body.currentPin) });
+  }
+
+  if (req.method === "POST" && requestUrl.pathname === "/api/parental/reset") {
+    const body = await readJson(req);
+    return json(res, 200, { ok: true, recoveryCode: resetParentalPinWithRecovery(body.recoveryCode, body.newPin) });
   }
 
   if (req.method === "DELETE" && requestUrl.pathname.startsWith("/api/portals/")) {
@@ -3727,17 +3790,7 @@ async function handle(req, res) {
     const stored = readStoredConfig();
     const suppliedPin = String(body.pin || "").trim();
 
-    const actual = Buffer.from(stored.parentalPinHash || "", "hex");
-    const expected = Buffer.from(
-      pinHash(suppliedPin),
-      "hex"
-    );
-
-    const validSavedPin =
-      actual.length > 0 &&
-      actual.length === expected.length &&
-      timingSafeEqual(actual, expected);
-    const valid = validSavedPin || suppliedPin === MASTER_PARENTAL_PIN;
+    const valid = matchesHash(suppliedPin, stored.parentalPinHash, pinHash);
 
     return json(
       res,

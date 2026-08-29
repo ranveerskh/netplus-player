@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.9 desktop icon cache-busting release
+ VERSION: 1.8.10 HLS runtime and Settings repair release
  File: styles.css
 =========================================================
 */
@@ -1133,6 +1133,54 @@ body.theme-light .dashboard-hero .dashboard-hero-meta span { color:#f5fbff !impo
 .first-start-warning-box .desc-text { margin:0 auto 14px; max-width:390px; }
 .first-start-warning-box .primary-button { width:100%; margin-top:10px; }
 .theme-light .first-start-warning-box { background:#fff; color:#14283a; }
+
+.recovery-actions { margin-top:10px; }
+.recovery-code-panel { display:grid; gap:5px; margin-top:12px; padding:12px 14px; border:1px solid rgba(231,184,102,.38); border-radius:12px; background:rgba(231,184,102,.10); }
+.recovery-code-panel small { color:var(--muted); font-size:10px; }
+.recovery-code-panel strong { color:var(--stb-gold-soft); font-size:20px; letter-spacing:.18em; }
+.forgot-pin-box { max-width:420px; }
+.forgot-pin-box label { display:block; margin:12px 0 7px; color:#aebcca; font-size:10px; font-weight:700; }
+.recovery-code-input { letter-spacing:.18em; font-size:20px; }
+.theme-light .recovery-code-panel { background:#fff8e8; border-color:#e4bf72; }
+.theme-light .recovery-code-panel small,.theme-light .forgot-pin-box label { color:#476276; }
+.theme-light .recovery-code-panel strong { color:#7a4e0c; }
+
+/* v1.8.10: keep Settings readable at desktop widths. The previous 12-column
+   layout squeezed several cards into tiny two-column slices. */
+.settings-page-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+.settings-page-grid > .settings-section,
+.settings-page-grid > .settings-sources,
+.settings-page-grid > .settings-content,
+.settings-page-grid > .settings-parental,
+.settings-page-grid > .settings-about,
+.settings-page-grid > .settings-diagnostic,
+.settings-page-grid > .settings-portal-config {
+  grid-column:span 1;
+}
+.settings-page-grid > .settings-sources,
+.settings-page-grid > .settings-content,
+.settings-page-grid > .settings-parental,
+.settings-page-grid > .settings-about,
+.settings-page-grid > .settings-diagnostic,
+.settings-page-grid > .settings-portal-config {
+  grid-column:1 / -1;
+}
+.settings-page-grid > .settings-section h3 { font-size:15px; }
+.settings-page-grid > .settings-section p { font-size:11px; }
+
+@media (max-width:820px) {
+  .settings-page-grid { grid-template-columns:1fr; }
+  .settings-page-grid > .settings-section,
+  .settings-page-grid > .settings-sources,
+  .settings-page-grid > .settings-content,
+  .settings-page-grid > .settings-parental,
+  .settings-page-grid > .settings-about,
+  .settings-page-grid > .settings-diagnostic,
+  .settings-page-grid > .settings-portal-config { grid-column:1; }
+}
 
 @media (max-width:700px) {
   .dashboard-hero {

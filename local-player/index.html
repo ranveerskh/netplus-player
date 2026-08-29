@@ -2,7 +2,7 @@
 <!--
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.9 desktop icon cache-busting release
+ VERSION: 1.8.10 HLS runtime and Settings repair release
  File: index.html
 =========================================================
 -->
@@ -10,12 +10,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="app-version" content="1.8.9-desktop-icon-cache-busting">
+  <meta name="app-version" content="1.8.10-hls-settings-repair">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>STB PLAY · 1.8.9</title>
-  <link rel="stylesheet" href="styles.css?v=1.8.9-desktop-icon-cache-busting">
+  <title>STB PLAY · 1.8.10</title>
+  <link rel="stylesheet" href="styles.css?v=1.8.10-hls-settings-repair">
   <script src="hls.min.js"></script>
 </head>
 
@@ -64,7 +64,7 @@
     <small class="field-help">The MAC is generated automatically. Edit it only if your provider assigned a different one.</small>
 
     <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
-    <p class="setup-version">STB PLAY v1.8.9 · Premium IPTV player</p>
+    <p class="setup-version">STB PLAY v1.8.10 · Premium IPTV player</p>
   </form>
 </main>
 
@@ -314,6 +314,22 @@
   </div>
 </div>
 
+<div id="forgotPinModal" class="modal-overlay" hidden>
+  <form id="forgotPinForm" class="modal-content pin-modal-box forgot-pin-box" autocomplete="off">
+    <button id="closeForgotPinModal" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <div class="pin-lock-icon">?</div>
+    <p class="eyebrow">PIN recovery</p>
+    <h2>Forgot parental PIN?</h2>
+    <p class="pin-description">Enter the recovery code you saved when the PIN was created, then choose a new 4-digit PIN.</p>
+    <label for="recoveryCodeInput">Recovery code</label>
+    <input id="recoveryCodeInput" class="pin-input recovery-code-input" type="password" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" placeholder="8-digit code" required>
+    <label for="recoveryNewPin">New parental PIN</label>
+    <input id="recoveryNewPin" class="pin-input" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4-digit PIN" required>
+    <div id="recoveryPinError" class="form-error pin-error" hidden></div>
+    <button id="recoverPinButton" class="primary-button" type="submit">Reset PIN</button>
+  </form>
+</div>
+
 <div id="settingsModal" class="modal-overlay" hidden>
   <div class="modal-content settings-box">
     <button id="closeSettingsButton" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
@@ -377,13 +393,23 @@
       <button id="shareButton" class="secondary-wide-button" type="button" hidden>Share STB PLAY</button>
     </section>
     <section class="settings-section settings-parental">
-      <h3>Parental Controls</h3><label for="newParentalPin">Change Parental PIN</label>
+      <h3>Parental Controls</h3>
+      <p>Protect restricted content with a 4-digit PIN. Keep the recovery code somewhere safe.</p>
+      <label for="newParentalPin">Change Parental PIN</label>
       <div class="input-row">
         <input id="currentParentalPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="Current 4-digit PIN">
         <input id="newParentalPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="New 4-digit PIN">
         <button id="updatePinButton" type="button">Update PIN</button>
       </div>
-      <p class="field-help">Forgot your PIN? Contact support for recovery.</p>
+      <div class="input-row recovery-actions">
+        <button id="generateRecoveryCodeButton" class="secondary-wide-button" type="button">Generate recovery code</button>
+        <button id="forgotParentalPinButton" class="secondary-wide-button" type="button">Forgot PIN?</button>
+      </div>
+      <div id="recoveryCodePanel" class="recovery-code-panel" hidden>
+        <small>Save this recovery code. It is shown only after it is generated.</small>
+        <strong id="recoveryCodeValue"></strong>
+      </div>
+      <p class="field-help">If the PIN and recovery code are both lost, the app must be reset and portal details will need to be entered again.</p>
       <span id="pinNotice" class="settings-notice" hidden></span>
     </section>
     <section class="settings-section settings-about">
@@ -392,7 +418,7 @@
       <div class="faq-list">
         <details><summary>What does STB PLAY provide?</summary><p>Only the player software. You must use a portal and content source that you are authorised to access.</p></details>
         <details><summary>Why is a channel or movie not playing?</summary><p>Playback depends on your provider, internet connection, stream format, and server availability. Try another quality or VLC when available, then contact your authorised provider.</p></details>
-        <details><summary>What is the master PIN?</summary><p>The support master PIN for this build is <strong>8445</strong>. Keep it private and use it only for authorised support or recovery.</p></details>
+        <details><summary>What if I forget the parental PIN?</summary><p>Use the saved 8-digit recovery code from Settings. A new recovery code is issued after recovery. STB PLAY does not contain a shared master PIN.</p></details>
         <details><summary>Privacy policy</summary><p>Portal details, MAC address, preferences, favourites, and watch progress are stored locally on this device. Diagnostics are opt-in: collection starts only after you press Start fresh test. Reports exclude your MAC address, PIN, tokens, cookies, provider hostname, and full stream links. STB PLAY does not intentionally sell personal data.</p></details>
         <details><summary>Terms and acceptable use</summary><p>You are responsible for using lawful, authorised portals and content. Do not use STB PLAY to access, copy, redistribute, or share content without permission. The software is provided as-is and availability is not guaranteed.</p></details>
       </div>
@@ -413,7 +439,7 @@
       <button id="resetPortalButton" class="danger-btn" type="button">Manage portals</button>
     </section>
     </div>
-    <p class="settings-version">STB PLAY v1.8.9 · Premium Home + personalised recommendations</p>
+    <p class="settings-version">STB PLAY v1.8.10 · Premium Home + personalised recommendations</p>
   </div>
 </div>
 
@@ -460,6 +486,6 @@
   </div>
 </div>
 
-<script src="app.js?v=1.8.9-desktop-icon-cache-busting"></script>
+<script src="app.js?v=1.8.10-hls-settings-repair"></script>
 </body>
 </html>
