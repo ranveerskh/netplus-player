@@ -1,0 +1,10 @@
+<resources>
+    <color name="stb_navy">#07101B</color>
+    <color name="stb_panel">#101D2C</color>
+    <color name="stb_panel_light">#17283A</color>
+    <color name="stb_gold">#E9B957</color>
+    <color name="stb_gold_bright">#FFD982</color>
+    <color name="stb_text">#F5F8FC</color>
+    <color name="stb_muted">#A9B6C5</color>
+    <color name="stb_danger">#FF9A9A</color>
+</resources>

@@ -1,0 +1,7 @@
+{
+  "versionCode": 151,
+  "versionName": "1.5.1",
+  "apkUrl": "https://your-authorized-https-host.example/stb-play-android-tv.apk",
+  "sha256": "replace-with-the-64-character-sha256-of-the-apk",
+  "notes": "Bug fixes and playback improvements."
+}
