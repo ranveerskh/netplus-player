@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.14 strict search, restored live parental locking, recovery and analytics
+ VERSION: 1.8.16 strict search, restored live parental locking, recovery and analytics
  File: server.cjs
 =========================================================
 */
@@ -18,6 +18,12 @@ const {
   isRetryableAnalyticsStatus,
   normalizeAnalyticsPayload,
 } = require("./analytics-contract.cjs");
+const {
+  uncoveredCategories,
+  orderedListRequest,
+  withFallbackCategory,
+  resolveLiveGenreId,
+} = require("./live-catalog.cjs");
 
 /* IPTV/CDN hosts used by the provider can publish broken IPv6 routes. */
 try { dns.setDefaultResultOrder("ipv4first"); } catch {}
@@ -29,10 +35,10 @@ const PORT = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPo
   : 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.14";
+const APP_VERSION = "1.8.16";
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.8.14.json"
+  "netplus-diagnostics-v1.8.16.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 const DEFAULT_ANALYTICS_ENDPOINT = "https://us-central1-stb-play-analytics.cloudfunctions.net/analyticsEvents";
@@ -966,17 +972,28 @@ function liveRowsFromResponse(response) {
 
 async function rebuildCatalog() {
   const session = await createSession();
-
-  const [genresResponse, channelsResponse] = await Promise.all([
-    portalRequest({ type: "itv", action: "get_genres" }, session),
-    portalRequest({ type: "itv", action: "get_all_channels" }, session),
-  ]);
-
+  const genresResponse = await portalRequest(
+    { type: "itv", action: "get_genres" },
+    session
+  );
   const genres = liveRowsFromResponse(genresResponse);
-  const rawChannels = liveRowsFromResponse(channelsResponse);
+  let rawChannels = [];
+  let globalListFailed = false;
 
-  /* Keep the live parental-lock model from v1.8.12. Provider category IDs
-     remain intact; adult channels are not moved into a synthetic category. */
+  try {
+    const channelsResponse = await portalRequest(
+      { type: "itv", action: "get_all_channels" },
+      session
+    );
+    rawChannels = liveRowsFromResponse(channelsResponse);
+  } catch (error) {
+    globalListFailed = true;
+    recordDiagnostic("live.catalogue_global_list_failed", {
+      status: Number(error?.status) || 0,
+    });
+  }
+
+  /* Keep provider category IDs and the existing parental lock behavior. */
   const providerCategories = genres
     .map((genre) => {
       const id = genre?.id ?? genre?.genre_id ?? genre?.category_id;
@@ -989,44 +1006,69 @@ async function rebuildCatalog() {
       };
     })
     .filter(Boolean);
+
+  const missingCategories = uncoveredCategories(providerCategories, rawChannels);
+  let orderedListRows = 0;
+  let orderedListRequests = 0;
+
+  /* Some Stalker portals leave get_all_channels empty. Load only uncovered
+     categories, one at a time, using the provider's ordered-list endpoint. */
+  for (const category of missingCategories) {
+    orderedListRequests += 1;
+    try {
+      const response = await portalRequest(orderedListRequest(category), session);
+      const rows = liveRowsFromResponse(response);
+      orderedListRows += rows.length;
+      rawChannels.push(...rows.map((row) => withFallbackCategory(row, category)));
+    } catch (error) {
+      recordDiagnostic("live.catalogue_category_list_failed", {
+        status: Number(error?.status) || 0,
+      });
+    }
+    await waitMs(250);
+  }
+
+  const channelMap = new Map();
   const commands = new Map();
 
-  const channels = rawChannels
-    .map((channel) => ({
-      row: channel,
-      id: channel?.id ?? channel?.tv_id ?? channel?.channel_id,
-      name: channel?.name ?? channel?.title ?? channel?.channel_name,
-      command: channel?.cmd ?? channel?.command ?? channel?.playback_cmd,
-    }))
-    .filter((channel) =>
-      channel.id != null &&
-      String(channel.name || "").trim() &&
-      String(channel.command || "").trim()
-    )
-    .map((channel) => {
-      const row = channel.row;
-      const id = String(channel.id);
-      commands.set(id, String(channel.command));
+  for (const row of rawChannels) {
+    const idValue = row?.id ?? row?.tv_id ?? row?.channel_id;
+    const nameValue = row?.name ?? row?.title ?? row?.channel_name;
+    const commandValue = row?.cmd ?? row?.command ?? row?.playback_cmd;
+    if (
+      idValue == null ||
+      !String(nameValue || "").trim() ||
+      !String(commandValue || "").trim()
+    ) {
+      continue;
+    }
 
-      const number = Number(row.number ?? row.channel_number ?? row.num);
+    const id = String(idValue);
+    const number = Number(row.number ?? row.channel_number ?? row.num);
+    const candidate = {
+      id,
+      name: String(nameValue).trim(),
+      number: Number.isFinite(number) ? number : null,
+      genreId: resolveLiveGenreId(row, providerCategories),
+      hd: providerFlag(row.hd),
+      adultLocked: isAdult(nameValue),
+    };
+    const existing = channelMap.get(id);
 
-      return {
-        id,
-        name: String(channel.name).trim(),
-        number: Number.isFinite(number) ? number : null,
-        genreId: String(
-          row.tv_genre_id ?? row.genre_id ?? row.genreId ?? "0"
-        ).trim() || "0",
-        hd: providerFlag(row.hd),
-        adultLocked: isAdult(channel.name),
-      };
-    })
-    .sort(
-      (a, b) =>
-        (a.number ?? Number.MAX_SAFE_INTEGER) -
-          (b.number ?? Number.MAX_SAFE_INTEGER) ||
-        a.name.localeCompare(b.name)
-    );
+    if (!existing) {
+      channelMap.set(id, candidate);
+      commands.set(id, String(commandValue));
+    } else if (existing.genreId === "0" && candidate.genreId !== "0") {
+      channelMap.set(id, { ...existing, genreId: candidate.genreId });
+    }
+  }
+
+  const channels = [...channelMap.values()].sort(
+    (a, b) =>
+      (a.number ?? Number.MAX_SAFE_INTEGER) -
+        (b.number ?? Number.MAX_SAFE_INTEGER) ||
+      a.name.localeCompare(b.name)
+  );
 
   catalogCache = {
     session,
@@ -1044,6 +1086,9 @@ async function rebuildCatalog() {
     providerCategories: providerCategories.length,
     rawChannelRows: rawChannels.length,
     normalizedChannels: channels.length,
+    orderedListRequests,
+    orderedListRows,
+    globalListFailed,
     channelsWithIds: rawChannels.filter((row) => row?.id != null || row?.tv_id != null || row?.channel_id != null).length,
     channelsWithNames: rawChannels.filter((row) => String(row?.name ?? row?.title ?? row?.channel_name ?? "").trim()).length,
     channelsWithCommands: rawChannels.filter((row) => String(row?.cmd ?? row?.command ?? row?.playback_cmd ?? "").trim()).length,
@@ -3470,7 +3515,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.14.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.16.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 

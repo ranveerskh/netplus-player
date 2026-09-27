@@ -1,6 +1,6 @@
 {
   "name": "stb-play",
-  "version": "1.8.14",
+  "version": "1.8.16",
   "private": true,
   "description": "STB PLAY IPTV Player for Live TV, Movies and Series",
   "author": "NetPlus",
@@ -13,6 +13,7 @@
     "build": "bash scripts/build-verified.sh",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test:live-catalog": "node --test local-player/tests/live-catalog.test.cjs",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate",
     "analytics:install": "npm --prefix analytics-backend/functions install --no-audit --no-fund",

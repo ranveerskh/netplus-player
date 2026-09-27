@@ -1,5 +1,5 @@
 {
-  "version": "1.8.15",
-  "notes": "Restored v1.8.12 live adult compatibility, VOD online subtitles, playback recovery, diagnostics, anonymous analytics, and a safer updater",
-  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.15/Netplus-IPTV-Player-Setup-1.8.15.exe"
+  "version": "1.8.16",
+  "notes": "Per-category Stalker live-list fallback, Quest navigation and focus fixes, playback recovery, diagnostics, anonymous analytics, and a safer updater",
+  "downloadUrl": "https://github.com/ranveerskh/netplus-player/releases/download/v1.8.16/Netplus-IPTV-Player-Setup-1.8.16.exe"
 }

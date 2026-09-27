@@ -2,7 +2,7 @@ name: Build Windows installer
 on:
   workflow_dispatch:
   push:
-    branches: ["build-v1.8.14", "build-v1.8.15"]
+    branches: ["build-v1.8.14", "build-v1.8.15", "build-v1.8.16"]
     tags: ["v*"]
 
 permissions:
@@ -21,6 +21,9 @@ jobs:
       - name: Install build tools
         run: npm install --no-audit --no-fund
 
+      - name: Test live catalogue fallback
+        run: npm run test:live-catalog
+
       - name: Build STB PLAY installer
         run: npm run desktop:make
 
@@ -32,7 +35,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: github.ref == 'refs/heads/build-v1.8.14' || github.ref == 'refs/heads/build-v1.8.15' || startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/build-v1.8.14' || github.ref == 'refs/heads/build-v1.8.15' || github.ref == 'refs/heads/build-v1.8.16' || startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
